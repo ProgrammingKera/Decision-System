@@ -35,6 +35,13 @@ def BIexpiry():
         return render_template("BIexpiry.html")
     return "Unauthorized access", 403
 
+@routes.route('/customerdashboard')
+def customerdashboard():
+    role = session.get("role")
+    if role in ["admin", "owner"]:
+        return render_template("customerdashboard.html")
+    return "Unauthorized access", 403
+
 # ==================== Admin-only Pages =====================
 @routes.route('/admininventory')
 def inventory():

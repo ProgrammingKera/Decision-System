@@ -101,7 +101,7 @@ body {
 
 /* Main Content Styles */
 main {
-    margin-top: -600px;
+    margin-top: -900px;
     grid-area: main;
     padding: 40px;
     overflow-y: auto;
