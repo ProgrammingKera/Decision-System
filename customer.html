@@ -7,13 +7,16 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="/css/customer.css">
-    <link rel="shortcut icon" href="/pictures/icon.png" type="image/x-icon"> 
+    <link rel="shortcut icon" href="/pictures/icon.png" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
    <nav class="navbar navbar-expand-lg navbar-custom px-4">
   <div class="container-fluid">
     <a class="navbar-brand d-flex align-items-center" href="#">
-      <img src="/pictures/img.jpg" alt="PharmaMastermind" class="logo-img me-2">
+      <img src="/pictures/img.jpg" alt="PharmaMastermind" class="logo-img me-3">
       <span>PharmaMastermind</span>
     </a>
 
@@ -22,12 +25,14 @@
     </div>
 
     <div class="d-flex align-items-center">
-      <i class="bi bi-person-circle fs-3 me-2" style="color: #138BA8;"></i>
-      <span class="welcome-text">Welcome, Customer</span>
+      <i class="bi bi-person-circle fs-2 me-3" style="color: #138BA8;"></i>
+      <div class="text-end">
+        <div class="welcome-text">Welcome, Customer</div>
+        <small class="text-muted">Premium Healthcare Solutions</small>
+      </div>
     </div>
   </div>
 </nav>
-
 
     <div class="container mt-4">
         <div class="row">
@@ -35,22 +40,29 @@
             <div class="col-lg-8">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5><i class="bi bi-grid-3x3-gap-fill me-2"></i>Products</h5>
+                        <h5><i class="bi bi-grid-3x3-gap-fill me-2"></i>Premium Products</h5>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary" id="productCount">0 Products</span>
+                        </div>
                     </div>
                     <div class="card-body">
-                        <div class="row mb-3">
-                            <div class="col-md-4">
-                                <select class="form-select" id="categorySelect">
-                                    <option selected>All Categories</option>
-                                    <option>Medicines</option>
-                                    <option>Personal Care</option>
-                                    <option>Baby Care</option>
-                                </select>
-                            </div>
-                            <div class="col-md-8">
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                    <input type="text" class="form-control" placeholder="Search by code or name" id="searchInput">
+                        <div class="search-section">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <select class="form-select" id="categorySelect">
+                                        <option selected>All Categories</option>
+                                        <option>Medicine</option>
+                                        <option>Cosmetics</option>
+                                        <option>Supplement</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="bi bi-search"></i>
+                                        </span>
+                                        <input type="text" class="form-control" placeholder="Search by product name or ID" id="searchInput">
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -65,10 +77,10 @@
             <div class="col-lg-4">
                 <div class="card">
                     <div class="card-header">
-                        <h5><i class="bi bi-receipt-cutoff me-2"></i>Billing</h5>
+                        <h5><i class="bi bi-receipt-cutoff me-2"></i>Shopping Cart</h5>
                         <div class="d-flex gap-2 mt-3">
                             <button class="btn btn-outline-primary w-50" onclick="clearorder()">
-                                <i class="bi bi-trash3 me-1"></i>Clear
+                                <i class="bi bi-trash3 me-1"></i>Clear Cart
                             </button>
                             <button class="btn btn-primary w-50" onclick="newOrder()">
                                 <i class="bi bi-plus-lg me-1"></i>New Order
@@ -83,34 +95,43 @@
                                         <th>QTY</th>
                                         <th>ITEM</th>
                                         <th>PRICE</th>
-                                        <th></th>
+                                        <th>ACTION</th>
                                     </tr>
                                 </thead>
-                                <tbody id="cartTableBody"></tbody>
+                                <tbody id="cartTableBody">
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-4">
+                                            <i class="bi bi-cart-x fs-1 d-block mb-2"></i>
+                                            Your cart is empty
+                                        </td>
+                                    </tr>
+                                </tbody>
                             </table>
                         </div>
                         <div class="billing-summary">
-                            <div class="d-flex">
-                                <span>Total:</span><span id="totalAmount">0.00</span>
+                            <div class="d-flex justify-content-between">
+                                <span>Subtotal:</span>
+                                <span id="totalAmount">Rs. 0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Tax (0%):</span>
+                                <span id="taxAmount">Rs. 0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Discount:</span>
+                                <span id="discountAmount">Rs. 0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between fw-bold">
+                                <span>Total:</span>
+                                <span id="finalTotal">Rs. 0.00</span>
                             </div>
                             
-                            <div class="mb-3">
-                                <label class="form-label">Paid Amount</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">Rs.</span>
-                                    <input type="number" class="form-control" id="paidAmount">
-                                </div>
+                            <div class="mt-4">
+                                <button class="payment-btn" onclick="proceedToPayment()" id="paymentBtn" disabled>
+                                    <i class="bi bi-credit-card-2-front"></i>
+                                    Proceed to Payment
+                                </button>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Returned</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">Rs.</span>
-                                    <input type="number" class="form-control" id="returnedAmount" readonly>
-                                </div>
-                            </div>
-                            <button class="btn btn-primary w-100" onclick="saveOrder()">
-                                <i class="bi bi-save me-1"></i>Proceed To Pyment
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -118,7 +139,20 @@
         </div>
     </div>
 
-    
+    <!-- Loading Modal -->
+    <div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center py-5">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <h5>Processing your order...</h5>
+                    <p class="text-muted">Please wait while we prepare your payment</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/customer.js"></script>

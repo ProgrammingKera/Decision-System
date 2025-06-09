@@ -47,36 +47,72 @@
 body {
   font-family: 'Inter', sans-serif;
   color: var(--text-primary);
-  background-color: var(--background-light);
+  background: linear-gradient(135deg, var(--background-light) 0%, #e2e8f0 100%);
   line-height: 1.5;
   min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: var(--spacing-md);
 }
 
 .container {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
+  padding: var(--spacing-md);
 }
 
 .header {
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: var(--spacing-xl);
+  padding: var(--spacing-lg);
+  background: var(--text-light);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow);
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+.header-logo {
+  width: 60px;
+  height: 60px;
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--box-shadow);
 }
 
 .header h1 {
   color: var(--secondary-color);
-  font-size: 2.5rem;
+  font-size: 2rem;
   margin-bottom: var(--spacing-xs);
   font-weight: 600;
 }
 
 .header p {
   color: var(--gray-600);
-  font-size: 1.125rem;
+  font-size: 1rem;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--gray-100);
+  color: var(--text-primary);
+  text-decoration: none;
+  border-radius: var(--border-radius-md);
+  transition: var(--transition-standard);
+  font-weight: 500;
+}
+
+.back-btn:hover {
+  background: var(--primary-color);
+  color: var(--text-light);
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow);
 }
 
 .payment-container {
@@ -144,6 +180,12 @@ body {
   color: var(--gray-600);
 }
 
+.modal-buttons {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: center;
+}
+
 .modal-button {
   background-color: var(--primary-color);
   color: var(--text-light);
@@ -158,6 +200,16 @@ body {
 
 .modal-button:hover {
   background-color: var(--accent-color);
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow);
+}
+
+.modal-button.secondary {
+  background-color: var(--gray-500);
+}
+
+.modal-button.secondary:hover {
+  background-color: var(--gray-600);
 }
 
 /* Animations */
@@ -193,11 +245,26 @@ body {
 }
 
 @media (max-width: 767px) {
+  .header {
+    flex-direction: column;
+    gap: var(--spacing-md);
+    text-align: center;
+  }
+  
+  .header-brand {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+  
   .header h1 {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
   }
   
   .header p {
-    font-size: 1rem;
+    font-size: 0.9rem;
+  }
+  
+  .modal-buttons {
+    flex-direction: column;
   }
 }

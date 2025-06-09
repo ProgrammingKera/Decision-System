@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml"  />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Payment Checkout</title>
+    <title>Payment Checkout - PharmaMastermind</title>
     <link rel="shortcut icon" href="/pictures/icon.png" type="image/x-icon">
     <link rel="stylesheet" href="/payment/style.css">
     <link rel="stylesheet" href="/payment/card.css">
@@ -13,12 +13,22 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://js.stripe.com/v3/"></script>
   </head>
   <body>
     <div class="container">
       <header class="header">
-        <h1>Complete Your Payment</h1>
-        <p>Fast, secure payment processing</p>
+        <div class="header-brand">
+          <img src="/pictures/img.jpg" alt="PharmaMastermind" class="header-logo">
+          <div>
+            <h1>Complete Your Payment</h1>
+            <p>Fast, secure payment processing with Stripe</p>
+          </div>
+        </div>
+        <a href="/customer" class="back-btn">
+          <i class="icon-arrow-left"></i>
+          Back to Shop
+        </a>
       </header>
 
       <main class="payment-container">
@@ -28,7 +38,7 @@
               <div class="card-front">
                 <div class="card-logo">
                   <div class="card-chip"></div>
-                  <span class="card-brand">Credit Card</span>
+                  <span class="card-brand">PharmaMastermind</span>
                 </div>
                 <div class="card-number" id="cardNumberDisplay">•••• •••• •••• ••••</div>
                 <div class="card-info">
@@ -48,7 +58,7 @@
                   <div class="cvv-label">CVV</div>
                   <div class="cvv-value" id="cvvDisplay">•••</div>
                 </div>
-                <div class="card-text">This card is property of Your Bank. Authorized use only.</div>
+                <div class="card-text">This card is property of PharmaMastermind. Authorized use only.</div>
               </div>
             </div>
           </div>
@@ -83,9 +93,9 @@
               <h3>Payment Method</h3>
               <div class="payment-options">
                 <label class="payment-option active">
-                  <input type="radio" name="paymentMethod" value="creditCard" checked>
+                  <input type="radio" name="paymentMethod" value="stripe" checked>
                   <span class="checkmark"></span>
-                  <span>Credit Card</span>
+                  <span>Credit/Debit Card</span>
                 </label>
                 <label class="payment-option">
                   <input type="radio" name="paymentMethod" value="paypal">
@@ -110,39 +120,26 @@
         <aside class="order-summary">
           <h2>Order Summary</h2>
           
-          <div class="order-items">
-            <div class="order-item">
-              <div class="item-details">
-                <h3>Product Name</h3>
-                <p>Product description with details</p>
-              </div>
-              <span class="item-price">$99.00</span>
-            </div>
-            <div class="order-item">
-              <div class="item-details">
-                <h3>Second Product</h3>
-                <p>Another item description</p>
-              </div>
-              <span class="item-price">$49.00</span>
-            </div>
+          <div class="order-items" id="orderItems">
+            <!-- Order items will be populated by JavaScript -->
           </div>
           
           <div class="order-totals">
             <div class="total-row">
               <span>Subtotal</span>
-              <span>$148.00</span>
+              <span id="subtotalAmount">Rs. 0.00</span>
             </div>
             <div class="total-row">
               <span>Shipping</span>
-              <span>$5.00</span>
+              <span>Rs. 0.00</span>
             </div>
             <div class="total-row">
               <span>Tax</span>
-              <span>$12.84</span>
+              <span>Rs. 0.00</span>
             </div>
             <div class="total-row grand-total">
               <span>Total</span>
-              <span>$165.84</span>
+              <span id="grandTotal">Rs. 0.00</span>
             </div>
           </div>
           
@@ -158,8 +155,11 @@
       <div class="modal-content">
         <div class="success-icon">✓</div>
         <h2>Payment Successful!</h2>
-        <p>Your payment was processed successfully. A confirmation email has been sent to your email address.</p>
-        <button class="modal-button" id="closeModal">Continue</button>
+        <p>Your payment was processed successfully. A confirmation receipt has been generated.</p>
+        <div class="modal-buttons">
+          <button class="modal-button" id="downloadReceipt">Download Receipt</button>
+          <button class="modal-button secondary" id="continueShopping">Continue Shopping</button>
+        </div>
       </div>
     </div>
 
