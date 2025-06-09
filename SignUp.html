@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign Up</title>
+    <link rel="shortcut icon" href="/pictures/icon.png" type="image/x-icon">
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Arial", sans-serif;
+      }
+
+      body {
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: url("/pictures/SignUp.png") no-repeat center center / cover;
+      }
+
+      .container {
+        width: 90%;
+        max-width: 350px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      h1 {
+        font-size: 28px;
+        color: #000;
+        margin-bottom: 15px;
+        font-weight: bold;
+      }
+
+      .form-group {
+        margin-bottom: 10px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      label {
+        font-size: 12px;
+        color: #555;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+
+      input {
+        width: 100%;
+        padding: 8px;
+        font-size: 12px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        outline: none;
+        transition: all 0.3s ease;
+      }
+
+      input:focus {
+        border-color: #0cb8b2;
+        box-shadow: 0 0 5px rgba(12, 184, 178, 0.5);
+      }
+
+      .form-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .form-row .form-group {
+        flex: 1;
+      }
+
+      .btn {
+        width: 100%;
+        padding: 8px;
+        font-size: 14px;
+        background: #0cb8b2;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background 0.3s ease;
+      }
+
+      .btn:hover {
+        background: #108581;
+      }
+
+      .footer-text {
+        margin-top: 10px;
+        font-size: 12px;
+        color: #777;
+        text-align: center;
+      }
+
+      .footer-text a {
+        color: #0cb8b2;
+        text-decoration: none;
+        font-weight: bold;
+      }
+
+      .footer-text a:hover {
+        text-decoration: underline;
+      }
+
+      select {
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fff;
+  width: 100%;
+  margin-top: 5px;
+}
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <p>Create your account</p>
+      <h1>Sign up</h1>
+      <form id="signupForm">
+        <div class="form-group">
+          <select name="role" id="role" required>
+            <option value="" disabled selected>Select a Role</option>
+            <option value="owner">Owner</option>
+            <option value="admin">Admin</option>
+            <option value="employee">Employee</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input
+            type="text"
+            id="username"
+            placeholder="Enter Username"
+            required
+          />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="first-name">First Name</label>
+            <input
+              type="text"
+              id="first-name"
+              placeholder="Enter First Name"
+              required
+            />
+            <p id="firstNameError" style="color: red; font-size: 12px"></p>
+          </div>
+          <div class="form-group">
+            <label for="last-name">Last Name</label>
+            <input
+              type="text"
+              id="last-name"
+              placeholder="Enter Last Name"
+              required
+            />
+            <p id="lastNameError" style="color: red; font-size: 12px"></p>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input
+            type="email"
+            id="email"
+            placeholder="Enter Your Email"
+            required
+          />
+          <p id="emailError" style="color: red; font-size: 12px"></p>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            placeholder="Enter Your Password"
+            required
+          />
+          <p id="passwordError" style="color: red; font-size: 12px"></p>
+        </div>
+        <div class="form-group">
+          <label for="confirm-password">Confirm Password</label>
+          <input
+            type="password"
+            id="confirm-password"
+            placeholder="Confirm Your Password"
+            required
+          />
+          <p id="passwordError" style="color: red; font-size: 12px"></p>
+        </div>
+        <button type="submit" class="btn">Sign Up →</button>
+      </form>
+
+      <script>
+        document.getElementById("signupForm").addEventListener("submit", function (event) {
+            event.preventDefault();
+        
+            let formData = {
+                username: document.getElementById("username").value,
+                firstName: document.getElementById("first-name").value,
+                lastName: document.getElementById("last-name").value,
+                email: document.getElementById("email").value,
+                password: document.getElementById("password").value,
+                role: document.getElementById("role").value //  Role added
+            };
+        
+            fetch("http://127.0.0.1:5000/signsup", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Signup failed");
+                }
+                return response.text();
+            })
+            .then(data => {
+                alert(data);
+                window.location.href = "/signin";  
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                alert("Signup failed. Please try again.");
+            });
+        });
+        </script>
+        
+
+      <p class="footer-text">
+        Already have an account? <a href="/signin">Sign In</a>
+      </p>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Search - PharmaSage</title>
+    <link rel="stylesheet" href="invoice.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="shortcut icon" href="/pictures/icon.png" type="image/x-icon">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <img src="/pictures/img.jpg" alt="PharmaMastermind" class="logo-img">
+            
+        </div>
+        <div class="nav-links">
+            <a href="/pos"><button>POS</button></a>
+            <a href="/inventory"><button >Inventory</button></a>
+           <a href="/invoice"> <button class="active">Invoices</button></a>
+           <a href="/returns"><button >Returns</button></a>
+        </div>
+    </nav>
+
+    <main>
+        <div class="search-container">
+            <h2>Search Invoice</h2>
+            <div class="search-box">
+                <input type="text" id="invoiceNumber" placeholder="Enter Invoice Number (e.g., INV-2024-001)">
+                <button class="btn" onclick="searchInvoice()">
+                    <i class="fas fa-search"></i>
+                    Search
+                </button>
+            </div>
+        </div>
+
+        <div class="invoice-display" id="invoiceDisplay">
+            <div class="invoice-header">
+                <h3>Invoice #INV-2024-001</h3>
+                <span class="date"><i class="far fa-calendar-alt"></i> 15 March 2024</span>
+            </div>
+            <div class="customer-info">
+                <p><i class="far fa-user"></i> <strong>Customer:</strong> John Doe</p>
+                <p><i class="fas fa-phone-alt"></i> <strong>Phone:</strong> +1 234-567-8900</p>
+            </div>
+            <table class="invoice-items">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Paracetamol 500mg</td>
+                        <td>2</td>
+                        <td>$5.00</td>
+                        <td>$10.00</td>
+                    </tr>
+                    <tr>
+                        <td>Vitamin C 1000mg</td>
+                        <td>1</td>
+                        <td>$15.00</td>
+                        <td>$15.00</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3"><strong>Total Amount</strong></td>
+                        <td><strong>$25.00</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </main>
+
+    <script src="invoice.js"></script>
+</body>
+</html>

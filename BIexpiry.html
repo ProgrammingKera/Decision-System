@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Sales Dashboard</title>
+    <link rel="stylesheet" href="/css/admindashboard.css"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="shortcut icon" href="/pictures/icon.png" type="image/x-icon">
+</head>
+<body>
+    <!-- Header -->
+    <div class="sidebar">
+        <div class="logo">
+            <img src="/pictures/log.jpeg" alt="Logo">
+            
+        </div>
+        <nav>
+            <a href="/dashboard" class="nav-item"><i class="fas fa-chart-line"></i> Statistics</a>
+            <a href="/BIexpiry" class="nav-item active"><i class="fas fa-chart-line"></i> BI Expiry</a>
+            
+            
+    
+        </nav>
+        <div class="logout">
+            <a href="{{ url_for('routes.logout') }}"  class="nav-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main>
+      
+        <iframe title="expiry_alerts" width="1140" height="400" src="https://app.powerbi.com/reportEmbed?reportId=3cf1cc05-f637-4981-af37-44c27bca4e77&autoAuth=true&ctid=d15185bc-8b24-4529-be76-5e893d82d12f" frameborder="0" allowFullScreen="true">
+
+        </iframe>
+
+</main>
+</body>
+</html>
+
+   
+
+
+
+   

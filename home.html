@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dogar Pharmacy POS</title>
+    <link rel="stylesheet" href="css/home.css">
+    <link rel="shortcut icon" href="/pictures/icon.png" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <header class="top-bar">
+        <div class="logo-section">
+            <div class="logo">
+                <img src="/pictures/log.jpeg" alt="Pharmacy Logo">
+            </div>
+            <div>
+                <h1>PharmaMastermind</h1>
+                <p class="tagline">Smarter Stock, Smarter Sales!</p>
+            </div>
+        </div>
+        <nav>
+            <a href="#about">About</a>
+            <a href="#help">Help</a>
+        </nav>
+    </header>
+
+    <main>
+        <div class="welcome-section">
+            <h2>Welcome to Dogar Pharmacy</h2>
+            <p>Please select your role to continue.</p>
+        </div>
+
+        <div class="login-cards">
+            <div class="card" onclick="handleLogin('owner')">
+                <div class="icon"><i class="fas fa-crown"></i></div>
+                <h3>Login as Owner</h3>
+                <p>Full system access and business insights.</p>
+            </div>
+
+            <div class="card" onclick="handleLogin('admin')">
+                <div class="shield"><i class="fas fa-shield"></i></div>
+                <h3>Login as Admin</h3>
+                <p>Manage inventory, users, and orders.</p>
+            </div>
+
+            <div class="card" onclick="handleLogin('employee')">
+                <div class="user"><i class="fas fa-user"></i></div>
+                <h3>Login as Employee</h3>
+                <p>Access to POS, inventory, and billing.</p>
+            </div>
+        </div>
+    </main>
+
+    <script type="module" src="js/home.js"></script>
+</body>
+</html>

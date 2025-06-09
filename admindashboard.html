@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Sales Dashboard</title>
+    <link rel="stylesheet" href="/css/admindashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="shortcut icon" href="/pictures/icon.png" type="image/x-icon">
+</head>
+<body>
+    <!-- Header -->
+    <div class="sidebar">
+        <div class="logo">
+            <img src="/pictures/log.jpeg" alt="Logo">
+            
+        </div>
+        <nav>
+            <a href="/dashboard" class="nav-item active"><i class="fas fa-chart-line"></i> Business Intelligence</a>
+            <a href="/BIexpiry" class="nav-item"><i class="fas fa-chart-line"></i> BI Expiry</a>
+            </a>
+            
+            
+    
+        </nav>
+        <div class="logout">
+            <a href="{{ url_for('routes.logout') }}"  class="nav-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main>
+      
+        <h2>Analysis - Dogar</h2>
+    <iframe title="dogar"
+            width="1140"
+            height="541.25"
+            src="https://app.powerbi.com/reportEmbed?reportId=dfadb888-c65f-47ab-9aef-2f4b2dfa5696&autoAuth=true&ctid=d15185bc-8b24-4529-be76-5e893d82d12f"
+            frameborder="0"
+            allowFullScreen="true">
+    </iframe>
+
+</main>
+</body>
+</html>
+
+   
+
+
+
+   
