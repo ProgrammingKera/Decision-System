@@ -12,6 +12,8 @@ from fpdf import FPDF
 import os
 from sklearn.linear_model import LinearRegression
 import numpy as np
+import stripe
+import uuid
 
 
 
@@ -26,6 +28,8 @@ app.config['SESSION_COOKIE_SECURE'] = False
 
 CORS(app, supports_credentials=True)
 
+# Stripe configuration
+stripe.api_key = 'sk_test_51JY6DwHmNGByIcZOsJbjlzGX4Hx2OHOm9jjDcfLAG5utDgtmh1mLRDymt8zvrFR15Ha8CPLNRTF2q5okGbr7O7rd00N4l6zrfg'  # Replace with your actual Stripe secret key
 
 # Correct config keys for flask_mysqldb with XAMPP
 app.config['MYSQL_USER'] = 'root'
@@ -258,6 +262,223 @@ def generate_pharmacy_order_pdf(order_id, supplier_name, expected_delivery_date,
     pdf.output(path)
 
     return path
+
+
+# Stripe Payment Intent Creation
+@app.route('/api/create_payment_intent', methods=['POST'])
+def create_payment_intent():
+    try:
+        data = request.json
+        amount = data.get('amount')  # Amount in cents
+        currency = data.get('currency', 'pkr')
+        cart = data.get('cart', [])
+
+        # Create payment intent with Stripe
+        intent = stripe.PaymentIntent.create(
+            amount=amount,
+            currency=currency,
+            metadata={
+                'cart_items': str(len(cart)),
+                'user_id': str(session.get('user_id', 'guest'))
+            }
+        )
+
+        return jsonify({
+            'client_secret': intent.client_secret,
+            'payment_intent_id': intent.id
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# Save Customer Order with Payment Details
+@app.route('/api/save_customer_order', methods=['POST'])
+def save_customer_order():
+    data = request.json
+    cart = data.get('cart', [])
+    total_amount = data.get('total_amount', 0)
+    paid_amount = data.get('paid_amount', 0)
+    change_amount = data.get('change_amount', 0)
+    payment_method = data.get('payment_method', 'stripe')
+    payment_intent_id = data.get('payment_intent_id')
+    card_holder = data.get('card_holder')
+    card_last_four = data.get('card_last_four')
+
+    if not cart:
+        return jsonify({"error": "Cart is empty."}), 400
+
+    try:
+        cur = mysql.connection.cursor()
+        
+        # Insert order with payment details
+        cur.execute("""
+            INSERT INTO orders (customer_id, order_date, total_amount, paid_amount, change_amount, 
+                              payment_method, payment_intent_id, card_holder, card_last_four)
+            VALUES (%s, NOW(), %s, %s, %s, %s, %s, %s, %s)
+        """, (session.get('user_id'), total_amount, paid_amount, change_amount, 
+              payment_method, payment_intent_id, card_holder, card_last_four))
+        
+        order_id = cur.lastrowid
+
+        # Insert order items and update stock
+        for item in cart:
+            cur.execute("""
+                INSERT INTO order_items (order_id, product_id, product_name, quantity, unit_price, total_price)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (
+                order_id,
+                item['product_id'],
+                item['name'],
+                item['quantity'],
+                item['price'],
+                item['price'] * item['quantity']
+            ))
+            
+            # Update product stock
+            cur.execute("""
+                UPDATE products 
+                SET stock_quantity = stock_quantity - %s 
+                WHERE product_id = %s AND stock_quantity >= %s
+            """, (item['quantity'], item['product_id'], item['quantity']))
+            
+            # Check if stock update was successful
+            if cur.rowcount == 0:
+                mysql.connection.rollback()
+                cur.close()
+                return jsonify({"error": f"Insufficient stock for {item['name']}"}), 400
+
+        mysql.connection.commit()
+
+        # Generate customer receipt PDF
+        pdf_path = generate_customer_receipt_pdf(
+            order_id=order_id,
+            cart=cart,
+            total_amount=total_amount,
+            paid_amount=paid_amount,
+            change_amount=change_amount,
+            card_holder=card_holder,
+            card_last_four=card_last_four
+        )
+
+        cur.close()
+
+        return jsonify({
+            "success": True,
+            "order_id": order_id,
+            "pdf_url": f"/download_customer_receipt/{os.path.basename(pdf_path)}"
+        })
+
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+def generate_customer_receipt_pdf(order_id, cart, total_amount, paid_amount, change_amount, card_holder, card_last_four):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
+
+    # Pharmacy Header
+    pdf.set_font("Arial", "B", 18)
+    pdf.set_text_color(19, 139, 168)
+    pdf.cell(0, 12, "PHARMA MASTERMIND", ln=True, align="C")
+
+    pdf.set_font("Arial", "", 11)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 6, "Smart Healthcare Solutions", ln=True, align="C")
+    pdf.cell(0, 6, "Near DHQ Hospital, Jhelum", ln=True, align="C")
+    pdf.cell(0, 6, "License Number: 3088-6987456", ln=True, align="C")
+    pdf.cell(0, 6, "Tel: 0321-1234567", ln=True, align="C")
+    pdf.ln(5)
+    
+    # Separator line
+    pdf.set_draw_color(19, 139, 168)
+    pdf.line(20, pdf.get_y(), 190, pdf.get_y())
+    pdf.ln(8)
+
+    # Receipt Info
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 8, f"CUSTOMER RECEIPT", ln=True, align="C")
+    pdf.ln(3)
+    
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(95, 6, f"Receipt No: CR-{order_id}", border=0)
+    pdf.cell(95, 6, datetime.now().strftime("%d %b %Y   %H:%M"), ln=True, align="R")
+    pdf.cell(95, 6, f"Customer: {card_holder}", border=0)
+    pdf.cell(95, 6, f"Card: ****{card_last_four}", ln=True, align="R")
+    pdf.ln(5)
+
+    # Table Header
+    pdf.set_font("Arial", "B", 10)
+    pdf.set_fill_color(240, 248, 255)
+    pdf.cell(25, 8, "Qty", border=1, align="C", fill=True)
+    pdf.cell(105, 8, "Product Description", border=1, align="C", fill=True)
+    pdf.cell(30, 8, "Unit Price", border=1, align="C", fill=True)
+    pdf.cell(30, 8, "Total", border=1, align="C", fill=True)
+    pdf.ln()
+
+    # Table Items
+    pdf.set_font("Arial", "", 9)
+    for item in cart:
+        item_total = item['price'] * item['quantity']
+        pdf.cell(25, 7, str(item['quantity']), border=1, align="C")
+        pdf.cell(105, 7, item['name'][:45], border=1)  # Truncate long names
+        pdf.cell(30, 7, f"Rs. {item['price']:.2f}", border=1, align="R")
+        pdf.cell(30, 7, f"Rs. {item_total:.2f}", border=1, align="R")
+        pdf.ln()
+
+    # Summary Section
+    pdf.ln(5)
+    pdf.set_font("Arial", "", 10)
+    
+    # Summary box
+    summary_y = pdf.get_y()
+    pdf.rect(130, summary_y, 60, 35)
+    
+    pdf.set_xy(135, summary_y + 3)
+    pdf.cell(50, 6, f"Subtotal: Rs. {total_amount:.2f}", ln=True)
+    pdf.set_x(135)
+    pdf.cell(50, 6, f"Tax: Rs. 0.00", ln=True)
+    pdf.set_x(135)
+    pdf.cell(50, 6, f"Discount: Rs. 0.00", ln=True)
+    pdf.set_x(135)
+    pdf.set_font("Arial", "B", 10)
+    pdf.cell(50, 6, f"Total: Rs. {total_amount:.2f}", ln=True)
+    pdf.set_x(135)
+    pdf.set_font("Arial", "", 9)
+    pdf.cell(50, 6, f"Paid: Rs. {paid_amount:.2f}", ln=True)
+
+    # Payment method info
+    pdf.ln(8)
+    pdf.set_font("Arial", "", 9)
+    pdf.cell(0, 6, f"Payment Method: Credit/Debit Card (****{card_last_four})", ln=True, align="C")
+    pdf.cell(0, 6, "Payment Status: APPROVED", ln=True, align="C")
+
+    # Footer
+    pdf.ln(10)
+    pdf.set_font("Arial", "B", 11)
+    pdf.cell(0, 8, "Thank You for Shopping with Us!", ln=True, align="C")
+    pdf.set_font("Arial", "", 8)
+    pdf.cell(0, 5, "For any queries, please contact us at support@pharmamaster.com", ln=True, align="C")
+    pdf.cell(0, 5, "Visit us online: www.pharmamaster.com", ln=True, align="C")
+
+    # Save PDF
+    pdf_folder = "customer_receipts"
+    os.makedirs(pdf_folder, exist_ok=True)
+    filename = f"customer_receipt_{order_id}.pdf"
+    path = os.path.join(pdf_folder, filename)
+    pdf.output(path)
+
+    return path
+
+
+@app.route('/download_customer_receipt/<filename>')
+def download_customer_receipt(filename):
+    try:
+        return send_from_directory('customer_receipts', filename, as_attachment=True)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 404
 
 
 #POS
