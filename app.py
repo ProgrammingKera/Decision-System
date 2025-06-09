@@ -120,95 +120,6 @@ def home():
     return render_template('home.html')
 
 
-# Customer Profile Management
-@app.route('/api/user/profile', methods=['GET', 'POST'])
-def user_profile():
-    user_id = session.get('user_id')
-    if not user_id:
-        return jsonify({"error": "Not authenticated"}), 401
-
-    if request.method == 'GET':
-        try:
-            cur = mysql.connection.cursor(DictCursor)
-            cur.execute("""
-                SELECT u.*, up.phone, up.address, up.date_of_birth, up.gender 
-                FROM users u 
-                LEFT JOIN user_profiles up ON u.id = up.user_id 
-                WHERE u.id = %s
-            """, (user_id,))
-            user = cur.fetchone()
-            cur.close()
-            
-            if user:
-                return jsonify(user)
-            else:
-                return jsonify({"error": "User not found"}), 404
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-
-    elif request.method == 'POST':
-        data = request.get_json()
-        try:
-            cur = mysql.connection.cursor()
-            
-            # Update users table
-            cur.execute("""
-                UPDATE users 
-                SET first_name = %s, last_name = %s, email = %s 
-                WHERE id = %s
-            """, (data.get('first_name'), data.get('last_name'), data.get('email'), user_id))
-            
-            # Check if profile exists
-            cur.execute("SELECT user_id FROM user_profiles WHERE user_id = %s", (user_id,))
-            profile_exists = cur.fetchone()
-            
-            if profile_exists:
-                # Update existing profile
-                cur.execute("""
-                    UPDATE user_profiles 
-                    SET phone = %s, address = %s, date_of_birth = %s, gender = %s 
-                    WHERE user_id = %s
-                """, (data.get('phone'), data.get('address'), data.get('date_of_birth'), data.get('gender'), user_id))
-            else:
-                # Create new profile
-                cur.execute("""
-                    INSERT INTO user_profiles (user_id, phone, address, date_of_birth, gender) 
-                    VALUES (%s, %s, %s, %s, %s)
-                """, (user_id, data.get('phone'), data.get('address'), data.get('date_of_birth'), data.get('gender')))
-            
-            mysql.connection.commit()
-            cur.close()
-            
-            return jsonify({"success": True, "message": "Profile updated successfully"})
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-
-
-@app.route('/api/user/orders', methods=['GET'])
-def user_orders():
-    user_id = session.get('user_id')
-    if not user_id:
-        return jsonify({"error": "Not authenticated"}), 401
-
-    try:
-        cur = mysql.connection.cursor(DictCursor)
-        cur.execute("""
-            SELECT o.*, COUNT(oi.order_item_id) as item_count
-            FROM orders o 
-            LEFT JOIN order_items oi ON o.order_id = oi.order_id 
-            WHERE o.customer_id = %s 
-            GROUP BY o.order_id 
-            ORDER BY o.order_date DESC 
-            LIMIT 10
-        """, (user_id,))
-        orders = cur.fetchall()
-        cur.close()
-        
-        return jsonify(orders)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
 #inventory
 @app.route('/api/products', methods=['GET'])
 def get_products():
@@ -233,6 +144,195 @@ def get_products():
     except Exception as err:
         return jsonify({"error": f"MySQL Error: {str(err)}"}), 500
 
+
+# Add new product
+@app.route('/api/products', methods=['POST'])
+def add_product():
+    try:
+        data = request.form
+        
+        # Handle image upload
+        image_path = None
+        if 'image' in request.files:
+            image = request.files['image']
+            if image.filename != '':
+                # Save image to pictures folder
+                image_filename = f"product_{data['product_id']}_{image.filename}"
+                image_path = f"/pictures/{image_filename}"
+                image.save(f"pictures/{image_filename}")
+        
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            INSERT INTO products (product_id, product_name, brand, description, price, 
+                                stock_quantity, category, expiry_date, image_path)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            data['product_id'],
+            data['product_name'],
+            data.get('brand', 'Generic'),
+            data.get('description', ''),
+            float(data['price']),
+            int(data['stock_quantity']),
+            data['category'],
+            data['expiry_date'] if data['expiry_date'] else None,
+            image_path
+        ))
+        mysql.connection.commit()
+        cur.close()
+        
+        return jsonify({"message": "Product added successfully"}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# Update product
+@app.route('/api/products/<int:product_id>', methods=['PUT'])
+def update_product(product_id):
+    try:
+        data = request.form
+        
+        # Handle image upload
+        image_path = None
+        if 'image' in request.files:
+            image = request.files['image']
+            if image.filename != '':
+                image_filename = f"product_{product_id}_{image.filename}"
+                image_path = f"/pictures/{image_filename}"
+                image.save(f"pictures/{image_filename}")
+        
+        cur = mysql.connection.cursor()
+        
+        # Build update query dynamically
+        update_fields = []
+        values = []
+        
+        if 'product_name' in data:
+            update_fields.append("product_name = %s")
+            values.append(data['product_name'])
+        
+        if 'brand' in data:
+            update_fields.append("brand = %s")
+            values.append(data.get('brand', 'Generic'))
+        
+        if 'description' in data:
+            update_fields.append("description = %s")
+            values.append(data.get('description', ''))
+        
+        if 'price' in data:
+            update_fields.append("price = %s")
+            values.append(float(data['price']))
+        
+        if 'stock_quantity' in data:
+            update_fields.append("stock_quantity = %s")
+            values.append(int(data['stock_quantity']))
+        
+        if 'category' in data:
+            update_fields.append("category = %s")
+            values.append(data['category'])
+        
+        if 'expiry_date' in data and data['expiry_date']:
+            update_fields.append("expiry_date = %s")
+            values.append(data['expiry_date'])
+        
+        if image_path:
+            update_fields.append("image_path = %s")
+            values.append(image_path)
+        
+        if update_fields:
+            query = f"UPDATE products SET {', '.join(update_fields)} WHERE product_id = %s"
+            values.append(product_id)
+            cur.execute(query, values)
+            mysql.connection.commit()
+        
+        cur.close()
+        return jsonify({"message": "Product updated successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# Delete product
+@app.route('/api/products/<int:product_id>', methods=['DELETE'])
+def delete_product(product_id):
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("DELETE FROM products WHERE product_id = %s", (product_id,))
+        mysql.connection.commit()
+        cur.close()
+        
+        return jsonify({"message": "Product deleted successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# Customer API endpoints
+@app.route('/api/customers', methods=['GET'])
+def get_customers():
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT id, username, first_name, last_name, email, role FROM users")
+        rows = cur.fetchall()
+        column_names = [desc[0] for desc in cur.description]
+        cur.close()
+        
+        customers = [dict(zip(column_names, row)) for row in rows]
+        return jsonify(customers)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/customer-orders', methods=['GET'])
+def get_customer_orders():
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT order_id, customer_id, total_amount, order_date FROM orders WHERE customer_id IS NOT NULL")
+        rows = cur.fetchall()
+        column_names = [desc[0] for desc in cur.description]
+        cur.close()
+        
+        orders = [dict(zip(column_names, row)) for row in rows]
+        return jsonify(orders)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/customer-order-details/<int:customer_id>', methods=['GET'])
+def get_customer_order_details(customer_id):
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            SELECT o.order_id, o.total_amount, o.order_date,
+                   oi.product_name, oi.quantity, oi.unit_price
+            FROM orders o
+            LEFT JOIN order_items oi ON o.order_id = oi.order_id
+            WHERE o.customer_id = %s
+            ORDER BY o.order_date DESC
+        """, (customer_id,))
+        
+        rows = cur.fetchall()
+        cur.close()
+        
+        # Group items by order
+        orders = {}
+        for row in rows:
+            order_id = row[0]
+            if order_id not in orders:
+                orders[order_id] = {
+                    'order_id': order_id,
+                    'total_amount': row[1],
+                    'order_date': row[2],
+                    'items': []
+                }
+            
+            if row[3]:  # If there are items
+                orders[order_id]['items'].append({
+                    'product_name': row[3],
+                    'quantity': row[4],
+                    'unit_price': row[5]
+                })
+        
+        return jsonify(list(orders.values()))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 #invetory order for pharmacy
@@ -1156,7 +1256,6 @@ def seasonal_forecast():
 
 
 
-
 # Get all employees
 
 @app.route('/employees/add', methods=['POST'])
@@ -1210,7 +1309,7 @@ def update_employee(emp_id):
         '''
         values = (
             data['name'], data['email'], data['phone'], data['cnic'],
-            data['emergency'], data['role'], data['salary'], emp_id
+            data['emergency_contact'], data['role'], data['salary'], emp_id
         )
         cur.execute(query, values)
         mysql.connection.commit()
@@ -1219,6 +1318,7 @@ def update_employee(emp_id):
     except Exception as e:
         print("Update error:", e)
         return jsonify({'error': str(e)}), 500
+
 
 
 # Delete employee

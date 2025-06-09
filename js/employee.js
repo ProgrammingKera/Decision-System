@@ -174,6 +174,7 @@ function openModal() {
 function closeModal() {
     document.getElementById("employeeModal").style.display = "none";
     document.getElementById("employeeForm").reset();
+    document.getElementById("empId").disabled = false; // Always enable after close
     editMode = false;
     editEmployeeId = null;
     document.body.style.overflow = "auto";
@@ -221,8 +222,8 @@ function saveEmployee() {
     .then(res => res.json())
     .then(data => {
         if (data.status === 'success') {
-            closeModal();
-            fetchEmployees();
+            closeModal(); // Modal close and form reset
+            fetchEmployees(); // Table refresh
             showNotification(
                 editMode ? 'Employee updated successfully!' : 'Employee added successfully!',
                 'success'
@@ -371,7 +372,3 @@ window.onclick = function (event) {
     }
 };
 
-// Reset form when modal closes
-document.getElementById("employeeModal").addEventListener("hidden", function() {
-    document.getElementById("empId").disabled = false;
-});
