@@ -10,21 +10,21 @@ function setupEventListeners() {
     // Search functionality
     document.getElementById('searchInput').addEventListener('input', filterProducts);
     document.getElementById('categoryFilter').addEventListener('change', filterProducts);
-    
+
     // Modal functionality
     document.getElementById('uploadArea').addEventListener('click', () => {
         document.getElementById('imageInput').click();
     });
-    
+
     document.getElementById('imageInput').addEventListener('change', handleImageUpload);
-    
+
     // Form submission
     document.getElementById('addProductForm').addEventListener('submit', handleFormSubmit);
 }
 
 // Fetch products from backend
 function fetchProducts() {
-    fetch("http://127.0.0.1:5000/api/products")  
+    fetch("http://127.0.0.1:5000/api/products")
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
@@ -32,7 +32,7 @@ function fetchProducts() {
             return response.json();
         })
         .then(data => {
-            console.log("Fetched Products:", data); 
+            console.log("Fetched Products:", data);
             products = data;
             renderProducts(data);
         })
@@ -50,7 +50,7 @@ function renderProducts(productsToRender) {
         return;
     }
 
-    tableBody.innerHTML = ''; 
+    tableBody.innerHTML = '';
 
     productsToRender.forEach(product => {
         const row = document.createElement("tr");
@@ -98,17 +98,17 @@ function renderProducts(productsToRender) {
 function filterProducts() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
     const categoryFilter = document.getElementById('categoryFilter').value;
-    
+
     let filtered = products.filter(product => {
         const matchesSearch = product.product_name.toLowerCase().includes(searchTerm) ||
-                            product.product_id.toString().includes(searchTerm);
-        
-        const matchesCategory = categoryFilter === 'all' || 
-                              product.category.toLowerCase() === categoryFilter.toLowerCase();
-        
+            product.product_id.toString().includes(searchTerm);
+
+        const matchesCategory = categoryFilter === 'all' ||
+            product.category.toLowerCase() === categoryFilter.toLowerCase();
+
         return matchesSearch && matchesCategory;
     });
-    
+
     renderProducts(filtered);
 }
 
@@ -120,7 +120,7 @@ function formatDate(dateString) {
 }
 
 function calculateSellingPrice(costPrice) {
-    return (parseFloat(costPrice || 0) * 1.2).toFixed(2); 
+    return (parseFloat(costPrice || 0) * 1.2).toFixed(2);
 }
 
 // Modal functions
@@ -129,7 +129,7 @@ function openAddProductModal() {
     document.querySelector('#addProductModal h2').textContent = 'Add Product';
     document.getElementById('addProductForm').reset();
     document.getElementById('previewImage').style.display = 'none';
-    
+
     // Clear any edit mode data
     document.getElementById('addProductForm').removeAttribute('data-edit-id');
 }
@@ -144,7 +144,7 @@ function handleImageUpload(event) {
     const file = event.target.files[0];
     if (file) {
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = function (e) {
             const previewImage = document.getElementById('previewImage');
             previewImage.src = e.target.result;
             previewImage.style.display = 'block';
@@ -155,10 +155,10 @@ function handleImageUpload(event) {
 
 async function handleFormSubmit(event) {
     event.preventDefault();
-    
+
     const formData = new FormData();
     const editId = event.target.getAttribute('data-edit-id');
-    
+
     // Collect form data
     formData.append('product_name', document.getElementById('productName').value);
     formData.append('product_id', document.getElementById('productId').value);
@@ -168,31 +168,31 @@ async function handleFormSubmit(event) {
     formData.append('price', document.getElementById('costPrice').value);
     formData.append('brand', 'Generic'); // Default brand
     formData.append('description', `${document.getElementById('productName').value} - ${document.getElementById('category').value}`);
-    
+
     // Add image if selected
     const imageFile = document.getElementById('imageInput').files[0];
     if (imageFile) {
         formData.append('image', imageFile);
     }
-    
+
     try {
         const url = editId ? `/api/products/${editId}` : '/api/products';
         const method = editId ? 'PUT' : 'POST';
-        
+
         const response = await fetch(url, {
             method: method,
             body: formData
         });
-        
+
         if (!response.ok) {
             throw new Error('Failed to save product');
         }
-        
+
         const result = await response.json();
         showNotification(editId ? 'Product updated successfully!' : 'Product added successfully!', 'success');
         closeAddProductModal();
         fetchProducts(); // Refresh the product list
-        
+
     } catch (error) {
         console.error('Error saving product:', error);
         showNotification('Error saving product', 'error');
@@ -205,11 +205,11 @@ async function editProduct(productId) {
         showNotification('Product not found', 'error');
         return;
     }
-    
+
     // Open modal in edit mode
     document.getElementById('addProductModal').style.display = 'block';
     document.querySelector('#addProductModal h2').textContent = 'Edit Product';
-    
+
     // Populate form with existing data
     document.getElementById('productName').value = product.product_name || '';
     document.getElementById('productId').value = product.product_id || '';
@@ -219,14 +219,14 @@ async function editProduct(productId) {
     document.getElementById('lowStockWarning').value = '10'; // Default value
     document.getElementById('costPrice').value = product.price || '';
     document.getElementById('sellingPrice').value = calculateSellingPrice(product.price);
-    
+
     // Show existing image if available
     if (product.image_path) {
         const previewImage = document.getElementById('previewImage');
         previewImage.src = product.image_path;
         previewImage.style.display = 'block';
     }
-    
+
     // Mark form as edit mode
     document.getElementById('addProductForm').setAttribute('data-edit-id', productId);
 }
@@ -235,19 +235,19 @@ async function deleteProduct(productId) {
     if (!confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
         return;
     }
-    
+
     try {
         const response = await fetch(`/api/products/${productId}`, {
             method: 'DELETE'
         });
-        
+
         if (!response.ok) {
             throw new Error('Failed to delete product');
         }
-        
+
         showNotification('Product deleted successfully!', 'success');
         fetchProducts(); // Refresh the product list
-        
+
     } catch (error) {
         console.error('Error deleting product:', error);
         showNotification('Error deleting product', 'error');
@@ -271,16 +271,16 @@ function showNotification(message, type = 'info') {
         max-width: 300px;
         animation: slideIn 0.3s ease;
     `;
-    
+
     notification.innerHTML = `
         <div style="display: flex; align-items: center; gap: 10px;">
             <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
             ${message}
         </div>
     `;
-    
+
     document.body.appendChild(notification);
-    
+
     // Remove after 4 seconds
     setTimeout(() => {
         if (notification.parentNode) {
@@ -291,7 +291,7 @@ function showNotification(message, type = 'info') {
 }
 
 // Close modal when clicking outside
-window.addEventListener('click', function(event) {
+window.addEventListener('click', function (event) {
     const modal = document.getElementById('addProductModal');
     if (event.target === modal) {
         closeAddProductModal();

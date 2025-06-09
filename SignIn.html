@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign-In Page</title>
     <link rel="shortcut icon" href="/pictures/icon.png" type="image/x-icon">
     <style>
-        
         * {
             margin: 0;
             padding: 0;
@@ -18,32 +18,34 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh; 
+            min-height: 100vh;
             background-color: #f5f7fa;
             margin: 0;
         }
 
-       
-        .container {
-    width: 100vw; 
-    height: 100vh;
-    display: flex;
-    justify-content: flex-end; 
-    align-items: center;
-    background: url('/pictures/SignIn.png') no-repeat center center / cover; 
-    position: relative;
-    
-}
 
-.form-section {
-    width: 350px; 
-    background-color: rgba(255, 255, 255, 0.9); 
-    padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    /* margin-left: 50px; */ /* ❌ Remove this too */
-    margin-right: 60px; /* ✅ Add this instead for spacing from right edge */
-}
+        .container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            background: url('/pictures/SignIn.png') no-repeat center center / cover;
+            position: relative;
+
+        }
+
+        .form-section {
+            width: 350px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            /* margin-left: 50px; */
+            /* ❌ Remove this too */
+            margin-right: 60px;
+            /* ✅ Add this instead for spacing from right edge */
+        }
 
 
         .logo img {
@@ -72,7 +74,7 @@
         }
 
         form input {
-            width: 100%; 
+            width: 100%;
             padding: 10px 12px;
             font-size: 14px;
             border: 1px solid #ccc;
@@ -94,7 +96,7 @@
         }
 
         .sign-in-button {
-            width: 100%; 
+            width: 100%;
             padding: 10px 15px;
             font-size: 14px;
             color: #fff;
@@ -125,11 +127,11 @@
             text-decoration: underline;
         }
 
-       
+
         @media (max-width: 768px) {
             .form-section {
-                width: 90%; 
-                margin-left: 10px; 
+                width: 90%;
+                margin-left: 10px;
             }
 
             h1 {
@@ -152,11 +154,12 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
-    
+
         <div class="form-section">
-        <img >
+            <img>
             <h3>Welcome back !!!</h3>
             <h1>Sign in</h1>
             <form id="login-form">
@@ -168,12 +171,12 @@
                 <input type="password" id="password" placeholder="Enter Your Password" required />
                 <span id="password-error" class="error-message" style="color: red; font-size: 12px;"></span>
 
-                
+
                 <a href="/forgot_password" class="forgot-password">Forgot Password?</a>
 
                 <button type="submit" class="sign-in-button">Sign In</button>
             </form>
-          
+
             <script>
                 document.getElementById("login-form").addEventListener("submit", function (event) {
                     event.preventDefault();
@@ -202,10 +205,10 @@
                                 } else if (role === "owner") {
                                     window.location.href = "/dashboard";
                                 }
-                                 else if (role === "customer") {
+                                else if (role === "customer") {
                                     window.location.href = "/customer";
                                 }
-                                 else {
+                                else {
                                     alert("Unknown role");
                                 }
                             } else {
@@ -218,8 +221,8 @@
                         });
                 });
             </script>
-            
-                   
+
+
 
             <p class="signup-text">
                 I don’t have an account? <a href="/signup">Sign up</a>
@@ -227,4 +230,5 @@
         </div>
     </div>
 </body>
+
 </html>

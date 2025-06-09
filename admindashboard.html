@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,51 +9,44 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="shortcut icon" href="/pictures/icon.png" type="image/x-icon">
 </head>
+
 <body>
     <!-- Header -->
     <div class="sidebar">
-    <div class="logo">
-        <img src="/pictures/log.jpeg" alt="Logo">
+        <div class="logo">
+            <img src="/pictures/log.jpeg" alt="Logo">
+        </div>
+        {% if session['role'] == 'owner' %}
+        <nav>
+            <a href="/dashboard" class="nav-item active"><i class="fas fa-chart-line"></i> Business Intelligence</a>
+            <a href="/BIexpiry" class="nav-item"><i class="fas fa-chart-line"></i> BI Expiry</a>
+        </nav>
+        {% elif session['role'] == 'admin' %}
+        <nav>
+            <a href="/dashboard" class="nav-item active"><i class="fas fa-chart-line"></i> Analysis</a>
+            <a href="/BIexpiry" class="nav-item"><i class="fas fa-chart-line"></i> BI Expiry</a>
+            <a href="/admininventory" class="nav-item"><i class="fas fa-box"></i> Inventory</a>
+            <a href="/expiry" class="nav-item"><i class="fas fa-exclamation-circle text-red-500"></i>Expiry</a>
+            <a href="/employes" class="nav-item "><i class="fas fa-users"></i> Employees</a>
+            <a href="/customerdashboard" class="nav-item"><i class="fas fa-users"></i> Customer Details</a>
+            <a href="/pos" class="nav-item"><i class="fas fa-shopping-cart"></i> pos</a>
+        </nav>
+        {% endif %}
+        <div class="logout">
+            <a href="{{ url_for('routes.logout') }}" class="nav-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
     </div>
-    {% if session['role'] == 'owner' %}
-    <nav>
-        <a href="/dashboard" class="nav-item active"><i class="fas fa-chart-line"></i> Business Intelligence</a>
-        <a href="/BIexpiry" class="nav-item"><i class="fas fa-chart-line"></i> BI Expiry</a>
-    </nav>
-    {% elif session['role'] == 'admin' %}
-    <nav>
-        <a href="/dashboard" class="nav-item active"><i class="fas fa-chart-line"></i> Analysis</a>
-        <a href="/BIexpiry" class="nav-item"><i class="fas fa-chart-line"></i> BI Expiry</a>
-        <a href="/admininventory" class="nav-item"><i class="fas fa-box"></i> Inventory</a>
-        <a href="/expiry" class="nav-item"><i class="fas fa-exclamation-circle text-red-500"></i>Expiry</a>
-        <a href="/employes" class="nav-item "><i class="fas fa-users"></i> Employees</a>
-        <a href="/customerdashboard" class="nav-item"><i class="fas fa-users"></i> Customer Details</a>
-        <a href="/pos" class="nav-item"><i class="fas fa-shopping-cart"></i> pos</a>
-    </nav>
-    {% endif %}
-    <div class="logout">
-        <a href="{{ url_for('routes.logout') }}" class="nav-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
-    </div>
-</div>
 
     <!-- Main Content -->
     <main>
-      
+
         <h2>Analysis - Dogar</h2>
-    <iframe title="dogar"
-            width="1140"
-            height="541.25"
+        <iframe title="dogar" width="1140" height="541.25"
             src="https://app.powerbi.com/reportEmbed?reportId=dfadb888-c65f-47ab-9aef-2f4b2dfa5696&autoAuth=true&ctid=d15185bc-8b24-4529-be76-5e893d82d12f"
-            frameborder="0"
-            allowFullScreen="true">
-    </iframe>
+            frameborder="0" allowFullScreen="true">
+        </iframe>
 
-</main>
+    </main>
 </body>
+
 </html>
-
-   
-
-
-
-   

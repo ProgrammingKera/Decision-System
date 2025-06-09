@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,27 +13,28 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
+
 <body>
-   <nav class="navbar navbar-expand-lg navbar-custom px-4">
-  <div class="container-fluid">
-    <a class="navbar-brand d-flex align-items-center" href="#">
-      <img src="/pictures/img.jpg" alt="PharmaMastermind" class="logo-img me-3">
-      <span>PharmaMastermind</span>
-    </a>
+    <nav class="navbar navbar-expand-lg navbar-custom px-4">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <img src="/pictures/img.jpg" alt="PharmaMastermind" class="logo-img me-3">
+                <span>PharmaMastermind</span>
+            </a>
 
-    <div class="mx-auto">
-      <h2>Shop Smart, Stay Healthy</h2>
-    </div>
+            <div class="mx-auto">
+                <h2>Shop Smart, Stay Healthy</h2>
+            </div>
 
-    <div class="d-flex align-items-center">
-      <i class="bi bi-person-circle fs-2 me-3" style="color: #138BA8;"></i>
-      <div class="text-end">
-        <div class="welcome-text">Welcome, Customer</div>
-        <small class="text-muted">Premium Healthcare Solutions</small>
-      </div>
-    </div>
-  </div>
-</nav>
+            <div class="d-flex align-items-center">
+                <i class="bi bi-person-circle fs-2 me-3" style="color: #138BA8;"></i>
+                <div class="text-end">
+                    <div class="welcome-text">Welcome, Customer</div>
+                    <small class="text-muted">Premium Healthcare Solutions</small>
+                </div>
+            </div>
+        </div>
+    </nav>
 
     <div class="container mt-4">
         <div class="row">
@@ -61,7 +63,8 @@
                                         <span class="input-group-text">
                                             <i class="bi bi-search"></i>
                                         </span>
-                                        <input type="text" class="form-control" placeholder="Search by product name or ID" id="searchInput">
+                                        <input type="text" class="form-control"
+                                            placeholder="Search by product name or ID" id="searchInput">
                                     </div>
                                 </div>
                             </div>
@@ -125,7 +128,7 @@
                                 <span>Total:</span>
                                 <span id="finalTotal">Rs. 0.00</span>
                             </div>
-                            
+
                             <div class="mt-4">
                                 <button class="payment-btn" onclick="proceedToPayment()" id="paymentBtn" disabled>
                                     <i class="bi bi-credit-card-2-front"></i>
@@ -157,4 +160,5 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/customer.js"></script>
 </body>
+
 </html>

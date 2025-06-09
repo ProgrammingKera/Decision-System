@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,28 +9,29 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="shortcut icon" href="/pictures/icon.png" type="image/x-icon">
 </head>
+
 <body>
     <div class="sidebar">
         <div class="logo">
             <img src="/pictures/log.jpeg" alt="Logo">
-            
+
         </div>
         <nav>
             <a href="/dashboard" class="nav-item"><i class="fas fa-chart-line"></i> Analysis</a>
             <a href="/BIexpiry" class="nav-item"><i class="fas fa-chart-line"></i> BI Expiry</a>
             <a href="/admininventory" class="nav-item active "><i class="fas fa-box"></i> Inventory</a>
-            
-            <a href="/expiry" class="nav-item"><i class="fas fa-exclamation-circle text-red-500"></i>Expiry 
+
+            <a href="/expiry" class="nav-item"><i class="fas fa-exclamation-circle text-red-500"></i>Expiry
             </a>
             <a href="/employes" class="nav-item "><i class="fas fa-users"></i> Employees</a>
-            <a href="/customerdashboard" class="nav-item " ><i class="fas fa-users"></i> Customer Details</a>
+            <a href="/customerdashboard" class="nav-item "><i class="fas fa-users"></i> Customer Details</a>
             <a href="/pos" class="nav-item "><i class="fas fa-shopping-cart"></i> pos</a>
-             
-            
-    
+
+
+
         </nav>
         <div class="logout">
-            <a href="{{ url_for('routes.logout') }}"  class="nav-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            <a href="{{ url_for('routes.logout') }}" class="nav-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </div>
     </div>
     <div class="main-content">
@@ -69,4 +71,5 @@
 
     <script src="/js/admininventory.js"></script>
 </body>
+
 </html>
