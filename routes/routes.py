@@ -24,6 +24,8 @@ def dashboard():
         return render_template("admindashboard.html")
     elif role == "employee":
         return redirect(url_for('routes.point_of_sale'))
+    elif role == "customer":
+        return redirect(url_for('routes.customer'))
     return "Unauthorized access", 403
 
 @routes.route('/BIexpiry')
@@ -60,9 +62,10 @@ def order():
 
 @routes.route('/customer')
 def customer():
-    if session.get("role") != "admin":
+    if session.get("role") != "customer":
         return "Unauthorized access", 403
     return render_template("customer.html")
+
 
 # ==================== Employee Pages =====================
 @routes.route('/pos')
@@ -96,7 +99,7 @@ def logout():
 
 @routes.route('/payment')
 def payment():
-    if session.get("role") not in [ "admin"]:
+    if session.get("role") not in [ "admin", "customer"]:
         return "Unauthorized access", 403
     return send_from_directory('payment', 'index.html')
 

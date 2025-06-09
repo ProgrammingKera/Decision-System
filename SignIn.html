@@ -201,7 +201,11 @@
                                     window.location.href = "/pos";
                                 } else if (role === "owner") {
                                     window.location.href = "/dashboard";
-                                } else {
+                                }
+                                 else if (role === "customer") {
+                                    window.location.href = "/customer";
+                                }
+                                 else {
                                     alert("Unknown role");
                                 }
                             } else {
