@@ -1118,6 +1118,12 @@ from flask import jsonify
 
 
 #recommendations 
+from flask import Flask, jsonify
+from flask_mysqldb import MySQL
+from datetime import datetime, timedelta
+from pyDecision.algorithm import saw
+
+
 @app.route('/smart_recommendations', methods=['GET'])
 def smart_recommendations():
     try:
@@ -1128,7 +1134,7 @@ def smart_recommendations():
 
         cursor.execute("""
             SELECT p.product_id, p.product_name, p.stock_quantity, 
-                   SUM(oi.quantity) AS total_sales
+                   COALESCE(SUM(oi.quantity), 0) AS total_sales
             FROM products p
             LEFT JOIN order_items oi ON p.product_id = oi.product_id
             LEFT JOIN orders o ON oi.order_id = o.order_id
@@ -1136,35 +1142,89 @@ def smart_recommendations():
             GROUP BY p.product_id
         """, (current_date - timedelta(days=30),))
 
-        rows = cursor.fetchall()
+        products = cursor.fetchall()
         columns = [desc[0] for desc in cursor.description]
-        products = [dict(zip(columns, row)) for row in rows]
+        products = [dict(zip(columns, row)) for row in products]
 
-        result = []
+        decision_matrix = []
+        product_ids = []
+        result_data = []
 
         for product in products:
             product_id = product['product_id']
             product_name = product['product_name']
-            stock_quantity = product['stock_quantity']
-            total_sales = product['total_sales'] if product['total_sales'] else 0
 
-            if total_sales < 10:
-                discount_recommendation = "High Discount"
-            elif total_sales < 50:
-                discount_recommendation = "Moderate Discount (Boost Sales)"
+            # Safe defaults
+            stock = product['stock_quantity'] if product['stock_quantity'] is not None else 0
+            sales = product['total_sales'] if product['total_sales'] is not None else 0
+
+            if isinstance(stock, (int, float)) is False:
+                stock = 0
+            if isinstance(sales, (int, float)) is False:
+                sales = 0
+
+            # KPIs
+            ssr = round(stock / sales, 2) if sales > 0 else float('inf')  # Stock to Sales Ratio
+            itr = round(sales / stock, 2) if stock > 0 else 0             # Inventory Turnover
+
+            # Trend Analysis (Last 4 weeks)
+            cursor.execute("""
+                SELECT WEEK(order_date), SUM(oi.quantity)
+                FROM orders o
+                JOIN order_items oi ON o.order_id = oi.order_id
+                WHERE oi.product_id = %s AND o.order_date >= %s
+                GROUP BY WEEK(order_date)
+                ORDER BY WEEK(order_date)
+            """, (product_id, current_date - timedelta(days=30)))
+
+            trends = cursor.fetchall()
+            weekly_sales = [row[1] for row in trends]
+
+            if weekly_sales == sorted(weekly_sales):
+                trend_score = 1  # improving
+            elif weekly_sales == sorted(weekly_sales, reverse=True):
+                trend_score = 3  # declining
             else:
-                discount_recommendation = "No Discount (High Demand)"
+                trend_score = 2  # stable
 
-            result.append({
-                'product_id': product_id,
-                'product_name': product_name,
-                'stock_quantity': stock_quantity,
-                'total_sales': int(total_sales),
-                'discount_recommendation': discount_recommendation
+            decision_matrix.append([ssr, 1/itr if itr > 0 else float('inf'), trend_score])
+            product_ids.append({
+                "product_id": product_id,
+                "product_name": product_name,
+                "stock_quantity": stock,
+                "total_sales": sales
+            })
+
+        # Weights and Impacts for SAW
+        weights = [0.4, 0.4, 0.2]  # importance of SSR, ITR, Trend
+        impacts = ['+', '+', '+']  # higher = worse, so + means promotion needed
+
+        scores, ranks = saw(decision_matrix, weights, impacts)
+
+        # Build final response
+        for i, product in enumerate(product_ids):
+            rank = ranks[i]
+            score = round(scores[i], 4)
+
+            if rank <= 3:
+                recommendation = "High Priority Promotion"
+            elif rank <= 6:
+                recommendation = "Moderate Promotion"
+            else:
+                recommendation = "No Immediate Promotion"
+
+            result_data.append({
+                "product_id": product["product_id"],
+                "product_name": product["product_name"],
+                "stock_quantity": product["stock_quantity"],
+                "total_sales": product["total_sales"],
+                "score": score,
+                "rank": int(rank),
+                "promotion_recommendation": recommendation
             })
 
         cursor.close()
-        return jsonify(result)
+        return jsonify(result_data)
 
     except Exception as e:
         return jsonify({"error": f"Error: {str(e)}"}), 500
