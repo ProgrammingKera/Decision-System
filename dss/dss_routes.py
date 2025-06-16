@@ -15,6 +15,9 @@ def init_dss_routes(mysql_instance):
     global mysql
     mysql = mysql_instance
 
+
+    # Decision Support System (DSS) Analysis
+    
     @dss_bp.route('/dss', methods=['GET'])
     def decision_support_system():
         try:
@@ -150,6 +153,7 @@ def init_dss_routes(mysql_instance):
         except Exception as e:
             return jsonify({"error": f"Error: {str(e)}"}), 500
 
+#Restock
     @dss_bp.route('/api/predict_restocks', methods=['GET'])
     def predict_restocks():
         try:
@@ -220,6 +224,8 @@ def init_dss_routes(mysql_instance):
         except Exception as e:
             return jsonify({"error": f"Error: {str(e)}"}), 500
 
+
+#expiry alerts
     @dss_bp.route('/expiry_alerts', methods=['GET'])
     def expiry_alerts():
         current_date = datetime.now().date()
@@ -303,6 +309,8 @@ def init_dss_routes(mysql_instance):
         except Exception as e:
             return jsonify({"error": f"Error: {str(e)}"}), 500
 
+
+    # Smart Recommendations
     @dss_bp.route('/smart_recommendations', methods=['GET'])
     def smart_recommendations():
         try:
@@ -408,6 +416,8 @@ def init_dss_routes(mysql_instance):
         except Exception as e:
             return jsonify({"error": f"Error: {str(e)}"}), 500
 
+
+    # Seasonal Forecasting
     @dss_bp.route('/seasonal_forecast', methods=['GET'])
     def seasonal_forecast():
         try:

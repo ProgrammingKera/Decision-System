@@ -227,25 +227,30 @@ function generateOrderHistoryHTML(orderDetails) {
     `;
     
     orderDetails.forEach(order => {
-        const orderDate = new Date(order.order_date).toLocaleDateString();
-        const products = order.items ? order.items.map(item => 
-            `${item.product_name} (${item.quantity}x)`
-        ).join(', ') : 'No items';
-        
-        html += `
-            <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 12px; border: 1px solid #ddd;">#${order.order_id}</td>
-                <td style="padding: 12px; border: 1px solid #ddd;">${orderDate}</td>
-                <td style="padding: 12px; border: 1px solid #ddd; max-width: 300px; word-wrap: break-word;">${products}</td>
-                <td style="padding: 12px; border: 1px solid #ddd; font-weight: 600; color: var(--success-color);">Rs. ${parseFloat(order.total_amount).toFixed(2)}</td>
-                <td style="padding: 12px; border: 1px solid #ddd;">
-                    <span style="background: var(--success-color); color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">
-                        Paid
-                    </span>
-                </td>
-            </tr>
-        `;
-    });
+    console.log("Order data:", order); // 🔍 Check this in browser console
+
+    const orderDate = new Date(order.order_date).toLocaleDateString();
+    const products = order.items ? order.items.map(item => 
+        `${item.product_name} (${item.quantity}x)`
+    ).join(', ') : 'No items';
+
+    const paymentStatus = order.payment_status || 'N/A'; // Safe fallback
+
+    html += `
+        <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 12px; border: 1px solid #ddd;">#${order.order_id}</td>
+            <td style="padding: 12px; border: 1px solid #ddd;">${orderDate}</td>
+            <td style="padding: 12px; border: 1px solid #ddd;">${products}</td>
+            <td style="padding: 12px; border: 1px solid #ddd; color: var(--success-color); font-weight: 600;">Rs. ${parseFloat(order.total_amount).toFixed(2)}</td>
+            <td style="padding: 12px; border: 1px solid #ddd;">
+                <span style="background: var(--success-color); color: black; padding: 4px 8px; border-radius: 12px;">
+                    ${paymentStatus}
+                </span>
+            </td>
+        </tr>
+    `;
+});
+
     
     html += '</tbody></table>';
     return html;

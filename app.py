@@ -529,7 +529,7 @@ def get_customers():
 def get_customer_orders():
     try:
         cur = mysql.connection.cursor()
-        cur.execute("SELECT order_id, customer_id, total_amount, order_date FROM orders WHERE customer_id IS NOT NULL")
+        cur.execute("SELECT order_id, customer_id, total_amount, order_date, payment_status FROM orders WHERE customer_id IS NOT NULL")
         rows = cur.fetchall()
         column_names = [desc[0] for desc in cur.description]
         cur.close()
@@ -546,7 +546,7 @@ def get_customer_order_details(customer_id):
         cur = mysql.connection.cursor()
         cur.execute("""
             SELECT o.order_id, o.total_amount, o.order_date,
-                   oi.product_name, oi.quantity, oi.unit_price
+               oi.product_name, oi.quantity, oi.unit_price, o.payment_status
             FROM orders o
             LEFT JOIN order_items oi ON o.order_id = oi.order_id
             WHERE o.customer_id = %s
@@ -565,6 +565,7 @@ def get_customer_order_details(customer_id):
                     'order_id': order_id,
                     'total_amount': row[1],
                     'order_date': row[2],
+                    'payment_status': row[6],  
                     'items': []
                 }
             
