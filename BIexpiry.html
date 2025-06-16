@@ -16,23 +16,20 @@
         <div class="logo">
             <img src="/pictures/log.jpeg" alt="Logo">
         </div>
-        {% if session['role'] == 'owner' %}
+        
         <nav>
-            <a href="/dashboard" class="nav-item "><i class="fas fa-chart-line"></i> Business Intelligence</a>
-            <a href="/BIexpiry" class="nav-item active"><i class="fas fa-chart-line"></i> BI Expiry</a>
-            <a href="/adminusers" class="nav-item "><i class="fas fa-user-cog"></i> User Management</a>
+            <a href="/dashboard" class="nav-item active"><i class="fas fa-chart-line"></i> Business Intelligence</a>
+            <a href="/BIexpiry" class="nav-item"><i class="fas fa-exclamation-triangle"></i> BI Expiry</a>
+            <a href="/adminusers" class="nav-item"><i class="fas fa-user-cog"></i> User Management</a>
+            <a href="/restocking" class="nav-item"><i class="fas fa-truck"></i> Restocking Prediction</a>
+            
+            <a href="/profit-margin" class="nav-item"><i class="fas fa-percentage"></i> Profit Margin Analysis</a>
+            <a href="/customer-pattern" class="nav-item"><i class="fas fa-users"></i> Customer Purchase Pattern</a>
+            <a href="/seasonal-demand" class="nav-item"><i class="fas fa-calendar-alt"></i> Seasonal Demand Forecasting</a>
+            <a href="/smart-recommendation" class="nav-item"><i class="fas fa-lightbulb"></i> Smart Recommendation</a>
+            
         </nav>
-        {% elif session['role'] == 'admin' %}
-        <nav>
-            <a href="/dashboard" class="nav-item "><i class="fas fa-chart-line"></i> Analysis</a>
-            <a href="/BIexpiry" class="nav-item active"><i class="fas fa-chart-line"></i> BI Expiry</a>
-            <a href="/admininventory" class="nav-item"><i class="fas fa-box"></i> Inventory</a>
-            <a href="/expiry" class="nav-item"><i class="fas fa-exclamation-circle text-red-500"></i>Expiry</a>
-            <a href="/employes" class="nav-item "><i class="fas fa-users"></i> Employees</a>
-            <a href="/customerdashboard" class="nav-item"><i class="fas fa-users"></i> Customer Details</a>
-            <a href="/pos" class="nav-item"><i class="fas fa-shopping-cart"></i> pos</a>
-        </nav>
-        {% endif %}
+        
         <div class="logout">
             <a href="{{ url_for('routes.logout') }}" class="nav-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </div>
