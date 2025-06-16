@@ -15,26 +15,41 @@
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg navbar-custom px-4">
-        <div class="container-fluid">
-            <a class="navbar-brand d-flex align-items-center" href="#">
-                <img src="/pictures/img.jpg" alt="PharmaMastermind" class="logo-img me-3">
-                <span>PharmaMastermind</span>
-            </a>
+    <nav class="navbar navbar-expand-lg navbar-custom px-4 shadow-sm" style="background-color: #f8f9fa;">
+    <div class="container-fluid">
+        <!-- Logo and Brand -->
+        <a class="navbar-brand d-flex align-items-center" href="#">
+            <img src="/pictures/img.jpg" alt="PharmaMastermind" class="logo-img me-3" style="height: 40px;">
+            <span>PharmaMastermind</span>
+        </a>
 
-            <div class="mx-auto">
-                <h2>Shop Smart, Stay Healthy</h2>
-            </div>
+       
+        <div class="mx-auto text-center">
+            <h5 class="mb-0" style="color: #138BA8; font-family: 'Inter', sans-serif; font-weight: 600;">
+            Welcome to PharmaMastermind – Your Health, Our Priority!
+            </h5>
+            
+        </div>
 
-            <div class="d-flex align-items-center">
-                <i class="bi bi-person-circle fs-2 me-3" style="color: #138BA8;"></i>
-                <div class="text-end">
-                    <div class="welcome-text">Welcome, Customer</div>
-                    <small class="text-muted">Premium Healthcare Solutions</small>
-                </div>
+            <!-- Dropdown Menu -->
+            <div class="dropdown">
+                <a class="dropdown-toggle no-arrow" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-person-circle fs-2" style="color: #138BA8;"></i>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end shadow">
+                    <li><a class="dropdown-item" href="/customerprofile"><i class="bi bi-person-lines-fill me-2"></i>Profile</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item text-danger" href="{{ url_for('routes.logout') }}">
+                            <i class="fas fa-sign-out-alt me-2"></i> Logout
+                        </a>
+                    </li>
+                </ul>
             </div>
         </div>
-    </nav>
+    </div>
+</nav>
+
 
     <div class="container mt-4">
         <div class="row">

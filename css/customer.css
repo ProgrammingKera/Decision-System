@@ -384,6 +384,10 @@ body {
     transform: translateY(-1px);
 }
 
+.dropdown-toggle.no-arrow::after {
+        display: none;
+    }
+
 /* Loading Animation */
 .loading {
     position: relative;

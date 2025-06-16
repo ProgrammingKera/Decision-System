@@ -73,6 +73,19 @@ def customer():
         return "Unauthorized access", 403
     return render_template("customer.html")
 
+@routes.route('/customerprofile')
+def customer_profile():
+    if session.get("role") != "customer":
+        return "Unauthorized access", 403
+    return render_template("customerprofile.html")
+
+# ==================== Owner/Admin User Management =====================
+@routes.route('/adminusers')
+def admin_users():
+    role = session.get("role")
+    if role not in ["owner", "admin"]:
+        return "Unauthorized access", 403
+    return render_template("adminusers.html")
 
 # ==================== Employee Pages =====================
 @routes.route('/pos')
