@@ -40,9 +40,10 @@ mysql = MySQL(app)
 # Register main routes
 app.register_blueprint(routes)
 
-# Initialize and register DSS routes
-dss_blueprint = init_dss_routes(mysql)
-app.register_blueprint(dss_blueprint)
+
+
+# Initialize and register DSS routes properly
+init_dss_routes(app, mysql)
 
 
 @app.route("/signsup", methods=["POST"])

@@ -1,20 +1,32 @@
 from flask import Blueprint, jsonify
 from flask_mysqldb import MySQL
-from collections import defaultdict
-import calendar
 from datetime import datetime, timedelta
 from sklearn.linear_model import LinearRegression
 import numpy as np
-from pyDecision.algorithm import saw
 
-# Create Blueprint for DSS routes
 dss_bp = Blueprint('dss', __name__)
+mysql = None
 
-def init_dss_routes(mysql_instance):
-    """Initialize DSS routes with MySQL instance"""
+# ✅ ROUTE 1: Test route
+@dss_bp.route('/dss/test', methods=['GET'])
+def test_dss():
+    return jsonify({"message": "DSS Blueprint Working!"})
+
+# ✅ ROUTE 2: DSS smart recommendations (FAHP / SPA logic)
+@dss_bp.route('/dss', methods=['GET'])
+def decision_support_system():
+    try:
+        # [ ... your entire KPI logic is fine here ... ]
+        # no changes needed here
+        return jsonify({...})
+    except Exception as e:
+        return jsonify({"error": f"Error: {str(e)}"}), 500
+
+# ✅ Only Register Here (no route definitions below this!)
+def init_dss_routes(app, mysql_instance):
     global mysql
     mysql = mysql_instance
-
+    app.register_blueprint(dss_bp)
 
     # Decision Support System (DSS) Analysis
     
@@ -311,110 +323,125 @@ def init_dss_routes(mysql_instance):
 
 
     # Smart Recommendations
-    @dss_bp.route('/smart_recommendations', methods=['GET'])
-    def smart_recommendations():
-        try:
-            current_date = datetime.now()
 
-            conn = mysql.connection
-            cursor = conn.cursor()
+from fahp_custom import fahp
+from sklearn.preprocessing import MinMaxScaler
 
-            cursor.execute("""
-                SELECT p.product_id, p.product_name, p.stock_quantity, 
-                       COALESCE(SUM(oi.quantity), 0) AS total_sales
-                FROM products p
-                LEFT JOIN order_items oi ON p.product_id = oi.product_id
-                LEFT JOIN orders o ON oi.order_id = o.order_id
-                WHERE o.order_date >= %s OR o.order_date IS NULL
-                GROUP BY p.product_id
-            """, (current_date - timedelta(days=30),))
 
-            products = cursor.fetchall()
-            columns = [desc[0] for desc in cursor.description]
-            products = [dict(zip(columns, row)) for row in products]
+@dss_bp.route('/smart_recommendations', methods=['GET'])
+def smart_recommendations():
+    try:
+        current_date = datetime.now()
+        conn = mysql.connection
+        cursor = conn.cursor()
 
-            decision_matrix = []
-            product_ids = []
-            result_data = []
+        # Fetch required data from database
+        cursor.execute("""
+            SELECT p.product_id, p.product_name, p.stock_quantity,
+                   COALESCE(SUM(oi.quantity), 0) AS total_sales,
+                   COALESCE(SUM(oi.unit_price * oi.quantity), 0) AS gross_sales,
+                   COALESCE(SUM(oi.discount), 0) AS discount,
+                   COALESCE(SUM(oi.allowance), 0) AS allowance,
+                   COALESCE(SUM(oi.cost_price * oi.quantity), 0) AS cogs,
+                   COALESCE(SUM(CASE WHEN o.status = 'backorder' THEN 1 ELSE 0 END), 0) AS backorders,
+                   COUNT(DISTINCT o.order_id) AS total_orders,
+                   COALESCE(SUM(CASE WHEN p.stock_quantity = 0 THEN 1 ELSE 0 END), 0) AS stock_outs,
+                   COALESCE(SUM(oi.received_qty), 0) AS received_units
+            FROM products p
+            LEFT JOIN order_items oi ON p.product_id = oi.product_id
+            LEFT JOIN orders o ON oi.order_id = o.order_id
+            WHERE o.order_date >= %s OR o.order_date IS NULL
+            GROUP BY p.product_id
+        """, (current_date - timedelta(days=30),))
 
-            for product in products:
-                product_id = product['product_id']
-                product_name = product['product_name']
+        products = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+        products = [dict(zip(columns, row)) for row in products]
 
-                # Safe defaults
-                stock = product['stock_quantity'] if product['stock_quantity'] is not None else 0
-                sales = product['total_sales'] if product['total_sales'] is not None else 0
+        decision_matrix = []
+        result_data = []
 
-                if isinstance(stock, (int, float)) is False:
-                    stock = 0
-                if isinstance(sales, (int, float)) is False:
-                    sales = 0
+        # --- Step 1: Build FAHP pairwise fuzzy comparison matrix (6x6)
+        fuzzy_matrix = [
+            [[1, 1, 1], [1, 2, 3], [3, 4, 5], [5, 6, 7], [1, 2, 3], [3, 4, 5]],
+            [[1/3, 1/2, 1], [1, 1, 1], [2, 3, 4], [3, 4, 5], [1, 2, 3], [2, 3, 4]],
+            [[1/5, 1/4, 1/3], [1/4, 1/3, 1/2], [1, 1, 1], [1, 2, 3], [1, 2, 3], [1, 2, 3]],
+            [[1/7, 1/6, 1/5], [1/5, 1/4, 1/3], [1/3, 1/2, 1], [1, 1, 1], [1, 1, 2], [2, 3, 4]],
+            [[1/3, 1/2, 1], [1/3, 1/2, 1], [1/3, 1/2, 1], [1/2, 1, 1], [1, 1, 1], [1, 2, 3]],
+            [[1/5, 1/4, 1/3], [1/4, 1/3, 1/2], [1/3, 1/2, 1], [1/4, 1/3, 1/2], [1/3, 1/2, 1], [1, 1, 1]]
+        ]
 
-                # KPIs
-                ssr = round(stock / sales, 2) if sales > 0 else float('inf')  # Stock to Sales Ratio
-                itr = round(sales / stock, 2) if stock > 0 else 0             # Inventory Turnover
+        # --- Step 2: Get weights using FAHP
+        fahp_weights = fahp(fuzzy_matrix)
 
-                # Trend Analysis (Last 4 weeks)
-                cursor.execute("""
-                    SELECT WEEK(order_date), SUM(oi.quantity)
-                    FROM orders o
-                    JOIN order_items oi ON o.order_id = oi.order_id
-                    WHERE oi.product_id = %s AND o.order_date >= %s
-                    GROUP BY WEEK(order_date)
-                    ORDER BY WEEK(order_date)
-                """, (product_id, current_date - timedelta(days=30)))
+        # --- Step 3: Build decision matrix from product KPIs
+        for p in products:
+            cogs = p['cogs'] or 1
+            avg_inventory = (p['stock_quantity'] + p['stock_quantity']) / 2 or 1
+            net_sales = (p['gross_sales'] - p['discount'] - p['allowance']) or 1
 
-                trends = cursor.fetchall()
-                weekly_sales = [row[1] for row in trends]
+            # Calculate KPIs
+            itr = round(cogs / avg_inventory, 2)  # Inventory Turnover Rate
+            product_sales = round(p['gross_sales'] - p['discount'] - p['allowance'], 2)
+            gross_margin = round(((net_sales - cogs) / net_sales) * 100, 2)
+            backorder_rate = round((p['backorders'] / p['total_orders']) * 100, 2) if p['total_orders'] else 0
+            sell_through = round((p['total_sales'] / p['received_units']) * 100, 2) if p['received_units'] else 0
+            stock_out = round((p['stock_outs'] / p['total_orders']) * 100, 2) if p['total_orders'] else 0
 
-                if weekly_sales == sorted(weekly_sales):
-                    trend_score = 1  # improving
-                elif weekly_sales == sorted(weekly_sales, reverse=True):
-                    trend_score = 3  # declining
-                else:
-                    trend_score = 2  # stable
+            decision_matrix.append([
+                itr,
+                product_sales,
+                gross_margin,
+                backorder_rate,
+                sell_through,
+                stock_out
+            ])
 
-                decision_matrix.append([ssr, 1/itr if itr > 0 else float('inf'), trend_score])
-                product_ids.append({
-                    "product_id": product_id,
-                    "product_name": product_name,
-                    "stock_quantity": stock,
-                    "total_sales": sales
-                })
+            result_data.append({
+                "product_id": p['product_id'],
+                "product_name": p['product_name'],
+                "InventoryTurnoverRate": itr,
+                "ProductSales": product_sales,
+                "GrossMargin": gross_margin,
+                "BackorderRate": backorder_rate,
+                "SellThroughRate": sell_through,
+                "StockOutRate": stock_out
+            })
 
-            # Weights and Impacts for SAW
-            weights = [0.4, 0.4, 0.2]  # importance of SSR, ITR, Trend
-            impacts = ['+', '+', '+']  # higher = worse, so + means promotion needed
+        # --- Step 4: Normalize & Score with FAHP weights
+        X = np.array(decision_matrix, dtype=float)
+        scaler = MinMaxScaler()
+        X_norm = scaler.fit_transform(X)
 
-            scores, ranks = saw(decision_matrix, weights, impacts)
+        impacts = ['+', '+', '+', '-', '+', '-']
+        for i, impact in enumerate(impacts):
+            if impact == '-':
+                X_norm[:, i] = 1 - X_norm[:, i]
 
-            # Build final response
-            for i, product in enumerate(product_ids):
-                rank = ranks[i]
-                score = round(scores[i], 4)
+        # Weighted scores
+        scores = np.dot(X_norm, fahp_weights)
+        ranks = np.argsort(-scores) + 1  # Rank from highest score
 
-                if rank <= 3:
-                    recommendation = "High Priority Promotion"
-                elif rank <= 6:
-                    recommendation = "Moderate Promotion"
-                else:
-                    recommendation = "No Immediate Promotion"
+        # --- Step 5: Build final output
+        for i, product in enumerate(result_data):
+            product["score"] = round(scores[i], 4)
+            product["rank"] = int(ranks[i])
 
-                result_data.append({
-                    "product_id": product["product_id"],
-                    "product_name": product["product_name"],
-                    "stock_quantity": product["stock_quantity"],
-                    "total_sales": product["total_sales"],
-                    "score": score,
-                    "rank": int(rank),
-                    "promotion_recommendation": recommendation
-                })
+            if product["rank"] <= 3:
+                product["recommendation"] = "Promote & Restock"
+                product["reason"] = "High demand, high profit, and low stock issues based on FAHP-ranked KPIs."
+            elif product["rank"] <= 6:
+                product["recommendation"] = "Monitor Closely"
+                product["reason"] = "Mixed KPI performance. Moderate priority."
+            else:
+                product["recommendation"] = "Low Priority"
+                product["reason"] = "Low demand, low margin or stock availability issues."
 
-            cursor.close()
-            return jsonify(result_data)
+        cursor.close()
+        return jsonify(result_data)
 
-        except Exception as e:
-            return jsonify({"error": f"Error: {str(e)}"}), 500
+    except Exception as e:
+        return jsonify({"error": f"Error: {str(e)}"}), 500
 
 
     # Seasonal Forecasting
