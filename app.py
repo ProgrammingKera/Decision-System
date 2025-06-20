@@ -40,8 +40,6 @@ mysql = MySQL(app)
 # Register main routes
 app.register_blueprint(routes)
 
-
-
 # Initialize and register DSS routes properly
 init_dss_routes(app, mysql)
 
@@ -73,8 +71,6 @@ def signsup():
     except Exception as e:
         print("❌ Signup Error:", str(e))
         return f"An error occurred: {str(e)}", 400
-
-
 
 
 @app.route("/signsin", methods=["POST"])
@@ -1033,9 +1029,6 @@ def download_receipt(filename):
         return jsonify({"error": str(e)}), 404
 
 
-
-
-
 # Invoice Generation
 from MySQLdb.cursors import DictCursor
 
@@ -1059,9 +1052,6 @@ def get_invoice(order_id):
         "order": order,
         "items": items
     }), 200
-
-
-
 
 
 # Get all employees
@@ -1143,6 +1133,5 @@ def delete_employee(emp_id):
         return jsonify({'error': str(e)}), 500
 
 
-
 if __name__ == "__main__":
-    app.run(port=5000)
+    app.run(port=5000, debug=True)
