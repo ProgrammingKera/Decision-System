@@ -8,6 +8,9 @@ import calendar
 from pygsp import filters
 import pygsp as gsp
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
+import pyDecision
+import random
+from sklearn.cluster import KMeans
 
 dss_bp = Blueprint('dss', __name__)
 mysql = None
@@ -17,147 +20,101 @@ def init_dss_routes(app, mysql_instance):
     mysql = mysql_instance
     app.register_blueprint(dss_bp)
 
-# ✅ ROUTE 1: Test route
+
 @dss_bp.route('/dss/test', methods=['GET'])
 def test_dss():
     return jsonify({"message": "DSS Blueprint Working!"})
 
-# ✅ ROUTE 2: DSS smart recommendations (FAHP / SPA logic)
-@dss_bp.route('/dss', methods=['GET'])
-def decision_support_system():
+
+#Decision Support System (DSS) Analysis
+@dss_bp.route("/dss", methods=['GET'])
+def decision_support_system_advanced():
     try:
-        # MySQL connection establish
         conn = mysql.connection
         cursor = conn.cursor()
-
-        # Data Extraction Query: Orders + Products + Order Items
         query = """
-        SELECT oi.*, p.product_name, p.price, o.order_date
-        FROM order_items oi
-        JOIN products p ON oi.product_id = p.product_id
-        JOIN orders o ON oi.order_id = o.order_id
+            SELECT oi.order_id, oi.quantity, oi.unit_price AS selling_price, 
+                   p.product_id, p.product_name, p.cost_price
+            FROM order_items oi
+            JOIN products p ON oi.product_id = p.product_id
         """
         cursor.execute(query)
         rows = cursor.fetchall()
         column_names = [desc[0] for desc in cursor.description]
         order_items = [dict(zip(column_names, row)) for row in rows]
 
-        # Dictionaries for KPIs initialization
-        product_sales = {}
-        product_profit = {}
-        product_sales_by_month = {}
+        # ✅ Extract quantity data
+        quantities = [item.get('quantity') or 0 for item in order_items]
+        quantity_array = np.array(quantities).reshape(-1, 1)
 
-        # Loop: KPI Calculation - Sales, Profit, and Monthly Trends
-        for item in order_items:
-            product_name = item['product_name']
-            total_sales = float(item['total_price'])
-            price = float(item['price'])
-            quantity = item['quantity']
+        # ⚡️ Apply KMeans clustering
+        if len(quantities) >= 3:
+            kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
+            labels = kmeans.fit_predict(quantity_array)
 
-            # KPI: Total Profit calculation
-            profit = total_sales - (quantity * price)
+            centers = kmeans.cluster_centers_.flatten()
+            sorted_centers = sorted((center, idx) for idx, center in enumerate(centers))
+            demand_mapping = {}
+            for demand_level, (_, idx) in zip(["Low", "Medium", "High"], sorted_centers):
+                demand_mapping[idx] = demand_level
+        else:
+            labels = [0 for _ in quantity_array]
+            demand_mapping = {0: "Low"}
 
-            # Initialize if not exists
-            if product_name not in product_sales:
-                product_sales[product_name] = 0
-                product_profit[product_name] = 0
-                product_sales_by_month[product_name] = {}
-
-            # Add to KPIs
-            product_sales[product_name] += total_sales
-            product_profit[product_name] += profit
-
-            # Sales trend tracking by month
-            month = item['order_date'].strftime('%Y-%m')
-            if month not in product_sales_by_month[product_name]:
-                product_sales_by_month[product_name][month] = 0
-            product_sales_by_month[product_name][month] += total_sales
-
-        # KPI: Sales Trend Evaluation (Updated)
-        product_trends = {}
-        for product_name, monthly_sales in product_sales_by_month.items():
-            months = sorted(monthly_sales.keys())
-            if len(months) > 1:
-                last_month = months[-1]
-                second_last_month = months[-2]
-                last_month_sales = monthly_sales[second_last_month]
-                current_month_sales = monthly_sales[last_month]
-                sales_growth = current_month_sales - last_month_sales
-
-                product_trends[product_name] = {
-                    'status': 'Growth' if sales_growth > 0 else 'Decline',
-                    'last_month': second_last_month,
-                    'last_month_sales': round(last_month_sales, 2),
-                    'current_month': last_month,
-                    'current_month_sales': round(current_month_sales, 2),
-                    'growth_amount': round(sales_growth, 2)
-                }
-            else:
-                month = months[-1]
-                current_month_sales = monthly_sales[month]
-                product_trends[product_name] = {
-                    'status': 'Decline',
-                    'last_month': None,
-                    'last_month_sales': 0.0,
-                    'current_month': month,
-                    'current_month_sales': round(current_month_sales, 2),
-                    'growth_amount': round(current_month_sales, 2)
-                }
-
-        # FAHP-based weight assignment for each KPI (manually given here)
-        weight_sales = 0.5
-        weight_profit = 0.3
-        weight_trend = 0.2
-
-        # Normalization for SPA (Simple Additive Weighting)
-        max_sales = max(product_sales.values()) if product_sales else 1
-        max_profit = max(product_profit.values()) if product_profit else 1
-
-        # Apply SPA: Normalize KPIs & Calculate Weighted Scores
-        decision_scores = {}
-        for product_name in product_sales:
-            sales_norm = float(product_sales[product_name]) / max_sales
-            profit_norm = float(product_profit[product_name]) / max_profit
-            trend_score = 1 if product_trends[product_name]['status'] == 'Growth' else 0
-
-            # SPA (Simple Additive Weighting) formula:
-            score = (sales_norm * weight_sales) + (profit_norm * weight_profit) + (trend_score * weight_trend)
-            decision_scores[product_name] = round(score, 4)
-
-        top_selling_products = sorted(product_sales.items(), key=lambda x: x[1], reverse=True)[:5]
-
-        # ✅ Prepare final list of product recommendation results
         results = []
-        for product_name in product_sales:
-            trend_info = product_trends.get(product_name, {})
-            results.append({
-                'product_name': product_name,
-                'total_sales (Rs)': round(product_sales[product_name], 2),     # KPI 1
-                'total_profit (Rs)': round(product_profit[product_name], 2),   # KPI 2
-                'trend': trend_info,
-                'decision_score': decision_scores[product_name]                # Final Score from SPA
+        for item, label in zip(order_items, labels):
+            cost_price = float(item.get('cost_price') or 0.0)
+            selling_price = float(item.get('selling_price') or 0.0)
+
+            profit_margin = ((selling_price - cost_price) / selling_price * 100) if selling_price > 0 else 0.0
+            quantity_sold = item.get('quantity') or 0
+            demand_level = demand_mapping.get(label, "Low")
+
+            result = {
+                'product_id': item.get('product_id'),
+                'product_name': item.get('product_name'),
+                'cost_price': cost_price,
+                'selling_price': selling_price,
+                'profit_margin': profit_margin,
+                'demand_level': demand_level,
+                'quantity_sold': quantity_sold
+            }
+            results.append(result)
+
+            # ⚡️ Insert into profit_records
+            insert_query = """
+                INSERT INTO profit_records 
+                (product_id, product_name, cost_price, selling_price, profit_margin, demand_level)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(
+                insert_query,
+                (
+                    result['product_id'], 
+                    result['product_name'], 
+                    result['cost_price'], 
+                    result['selling_price'], 
+                    result['profit_margin'], 
+                    result['demand_level']
+                )
+            )
+        conn.commit()
+
+        # ✅ Final Output
+        formatted_results = []
+        for result in results:
+            formatted_results.append({
+                'product_name': result['product_name'],
+                'cost_price': f"Rs. {result['cost_price']:.2f}",
+                'selling_price': f"Rs. {result['selling_price']:.2f}",
+                'profit_margin': f"{result['profit_margin']:.2f}%",
+                'demand_level': result['demand_level'],
+                'quantity_sold': f"{result['quantity_sold']} units"
             })
 
-        # ✅ Final JSON Response including KPIs and SPA Result
-        cursor.close()
-        return jsonify({
-            "message": "Decision support system analysis completed successfully.",
-            "criteria_used": ["Total Sales", "Total Profit", "Sales Trend"],
-            "fahp_weights": {
-                "Total Sales": weight_sales,
-                "Total Profit": weight_profit,
-                "Sales Trend": weight_trend
-            },
-            "decision_method": "SPA ",
-            "top_selling_products": [{"product_name": p[0], "total_sales": round(p[1], 2)} for p in top_selling_products],
-            "total_records_analyzed": len(order_items),
-            "unique_products_count": len(product_sales),
-            "product_recommendation_scores": results
-        })
-
+        return jsonify({"results": formatted_results})
     except Exception as e:
-        return jsonify({"error": f"Error: {str(e)}"}), 500
-
+        return jsonify({"error": str(e)}), 500
 
 
 # Restock Prediction
