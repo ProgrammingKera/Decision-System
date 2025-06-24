@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restocking Prediction - Admin Panel</title>
+    <link rel="stylesheet" href="/css/admindashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="shortcut icon" href="/pictures/icon.png" type="image/x-icon">
+    <style>
+        .prediction-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .prediction-card {
+            background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid var(--primary-color);
+            transition: all 0.3s ease;
+        }
+
+        .prediction-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .prediction-card.critical {
+            border-left-color: #E74C3C;
+            background: linear-gradient(145deg, #fff5f5 0%, #fef2f2 100%);
+        }
+
+        .prediction-card.high {
+            border-left-color: #F39C12;
+            background: linear-gradient(145deg, #fffbf0 0%, #fef3c7 100%);
+        }
+
+        .prediction-card.medium {
+            border-left-color: #3498DB;
+            background: linear-gradient(145deg, #f0f9ff 0%, #dbeafe 100%);
+        }
+
+        .prediction-card.low {
+            border-left-color: #27AE60;
+            background: linear-gradient(145deg, #f0fdf4 0%, #dcfce7 100%);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .product-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .priority-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .priority-1 { background: #E74C3C; color: white; }
+        .priority-2 { background: #F39C12; color: white; }
+        .priority-3 { background: #3498DB; color: white; }
+        .priority-4 { background: #27AE60; color: white; }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .kpi-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .kpi-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .kpi-label {
+            font-size: 0.85rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .prediction-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .detail-label {
+            font-weight: 500;
+            color: #555;
+        }
+
+        .detail-value {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .algorithm-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .algorithm-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--secondary-color);
+        }
+
+        .algorithm-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .algorithm-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            padding: 4px 0;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(19, 139, 168, 0.3);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            font-size: 1.2rem;
+            color: var(--primary-color);
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .refresh-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .refresh-btn:hover {
+            background: var(--accent-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(19, 139, 168, 0.3);
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            padding: 10px 15px;
+            border: 2px solid #e1e1e1;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-select:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(19, 139, 168, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="logo">
+            <img src="/pictures/log.jpeg" alt="Logo">
+        </div>
+        <nav>
+            <a href="/dashboard" class="nav-item"><i class="fas fa-chart-line"></i> Business Intelligence</a>
+            <a href="/BIexpiry" class="nav-item"><i class="fas fa-exclamation-triangle"></i> BI Expiry</a>
+            <a href="/adminusers" class="nav-item"><i class="fas fa-user-cog"></i> User Management</a>
+            <a href="/restocking" class="nav-item active"><i class="fas fa-truck"></i> Restocking Prediction</a>
+            
+            <a href="/profit-margin" class="nav-item"><i class="fas fa-percentage"></i> Profit Margin Analysis</a>
+            <a href="/customer-pattern" class="nav-item"><i class="fas fa-users"></i> Customer Purchase Pattern</a>
+            <a href="/seasonal-demand" class="nav-item"><i class="fas fa-calendar-alt"></i> Seasonal Demand Forecasting</a>
+            <a href="/smart-recommendation" class="nav-item"><i class="fas fa-lightbulb"></i> Smart Recommendation</a>
+        </nav>
+        <div class="logout">
+            <a href="{{ url_for('routes.logout') }}" class="nav-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+            <div>
+                <h2><i class="fas fa-truck"></i> Intelligent Restocking Prediction System</h2>
+                <p style="color: #666; margin-top: 10px;">Advanced AI-powered inventory management with 7 algorithms and 3 key KPIs</p>
+            </div>
+            <button class="refresh-btn" onclick="loadRestockPredictions()">
+                <i class="fas fa-sync-alt"></i> Refresh Predictions
+            </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+            <select class="filter-select" id="priorityFilter" onchange="filterPredictions()">
+                <option value="">All Priorities</option>
+                <option value="1">Critical</option>
+                <option value="2">High</option>
+                <option value="3">Medium</option>
+                <option value="4">Low</option>
+            </select>
+            <select class="filter-select" id="sortBy" onchange="sortPredictions()">
+                <option value="priority">Sort by Priority</option>
+                <option value="turnover">Sort by Turnover Rate</option>
+                <option value="accuracy">Sort by Forecast Accuracy</option>
+                <option value="stock">Sort by Current Stock</option>
+            </select>
+        </div>
+
+        <!-- Summary Statistics -->
+        <div class="summary-stats" id="summaryStats">
+            <!-- Will be populated by JavaScript -->
+        </div>
+
+        <!-- Loading/Error States -->
+        <div id="loadingSpinner" class="loading-spinner" style="display: none;">
+            <i class="fas fa-spinner fa-spin"></i> &nbsp; Analyzing inventory data with AI algorithms...
+        </div>
+
+        <div id="errorMessage" class="error-message" style="display: none;">
+            <!-- Error message will be displayed here -->
+        </div>
+
+        <!-- Predictions Container -->
+        <div class="prediction-container" id="predictionsContainer">
+            <!-- Prediction cards will be populated by JavaScript -->
+        </div>
+    </main>
+
+    <script>
+        let allPredictions = [];
+        let filteredPredictions = [];
+
+        // Load predictions on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadRestockPredictions();
+        });
+
+        async function loadRestockPredictions() {
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const errorMessage = document.getElementById('errorMessage');
+            const container = document.getElementById('predictionsContainer');
+            
+            loadingSpinner.style.display = 'block';
+            errorMessage.style.display = 'none';
+            container.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/predict_restocks');
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                allPredictions = data.predictions || [];
+                filteredPredictions = [...allPredictions];
+                
+                displaySummaryStats(data.summary);
+                displayPredictions(filteredPredictions);
+                
+            } catch (error) {
+                console.error('Error loading predictions:', error);
+                errorMessage.innerHTML = `
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Error loading predictions:</strong> ${error.message}
+                    <br><small>Please check your connection and try again.</small>
+                `;
+                errorMessage.style.display = 'block';
+            } finally {
+                loadingSpinner.style.display = 'none';
+            }
+        }
+
+        function displaySummaryStats(summary) {
+            const container = document.getElementById('summaryStats');
+            if (!summary) return;
+
+            container.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value">${summary.total_products_analyzed || 0}</div>
+                    <div class="stat-label">Products Analyzed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${summary.critical_restocks || 0}</div>
+                    <div class="stat-label">Critical Restocks</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${summary.high_priority_restocks || 0}</div>
+                    <div class="stat-label">High Priority</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">7</div>
+                    <div class="stat-label">AI Algorithms</div>
+                </div>
+            `;
+        }
+
+        function displayPredictions(predictions) {
+            const container = document.getElementById('predictionsContainer');
+            
+            if (!predictions || predictions.length === 0) {
+                container.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #666;">
+                        <i class="fas fa-box-open" style="font-size: 3rem; margin-bottom: 20px; display: block;"></i>
+                        <h3>No Predictions Available</h3>
+                        <p>No products found that require restocking analysis.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = predictions.map(prediction => `
+                <div class="prediction-card ${getPriorityClass(prediction.priority)}">
+                    <div class="card-header">
+                        <h3 class="product-name">${prediction.product_name}</h3>
+                        <span class="priority-badge priority-${prediction.priority}">
+                            ${getPriorityText(prediction.priority)}
+                        </span>
+                    </div>
+
+                    <!-- Key Performance Indicators -->
+                    <div class="kpi-grid">
+                        <div class="kpi-item">
+                            <div class="kpi-value">${prediction.inventory_turnover_rate}</div>
+                            <div class="kpi-label">Turnover Rate</div>
+                        </div>
+                        <div class="kpi-item">
+                            <div class="kpi-value">${prediction.days_on_hand}</div>
+                            <div class="kpi-label">Days on Hand</div>
+                        </div>
+                        <div class="kpi-item">
+                            <div class="kpi-value">${prediction.forecast_accuracy_percentage}%</div>
+                            <div class="kpi-label">Forecast Accuracy</div>
+                        </div>
+                    </div>
+
+                    <!-- Prediction Details -->
+                    <div class="prediction-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Current Stock:</span>
+                            <span class="detail-value">${prediction.current_stock} units</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Predicted Demand:</span>
+                            <span class="detail-value">${prediction.predicted_demand} units</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Reorder Point:</span>
+                            <span class="detail-value">${prediction.reorder_point} units</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Order Quantity:</span>
+                            <span class="detail-value">${prediction.recommended_order_quantity} units</span>
+                        </div>
+                    </div>
+
+                    <!-- Urgency Status -->
+                    <div style="background: rgba(0,0,0,0.05); padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+                        <strong style="color: ${getPriorityColor(prediction.priority)};">
+                            <i class="fas fa-exclamation-circle"></i> ${prediction.urgency}
+                        </strong>
+                    </div>
+
+                    <!-- Algorithm Predictions -->
+                    <div class="algorithm-section">
+                        <div class="algorithm-title">
+                            <i class="fas fa-brain"></i> AI Algorithm Predictions
+                        </div>
+                        <div class="algorithm-grid">
+                            <div class="algorithm-item">
+                                <span>Linear Regression:</span>
+                                <span>${prediction.algorithm_predictions.linear_regression}</span>
+                            </div>
+                            <div class="algorithm-item">
+                                <span>Random Forest:</span>
+                                <span>${prediction.algorithm_predictions.random_forest}</span>
+                            </div>
+                            <div class="algorithm-item">
+                                <span>Moving Average:</span>
+                                <span>${prediction.algorithm_predictions.moving_average}</span>
+                            </div>
+                            <div class="algorithm-item">
+                                <span>Exp. Smoothing:</span>
+                                <span>${prediction.algorithm_predictions.exponential_smoothing}</span>
+                            </div>
+                            <div class="algorithm-item">
+                                <span>Weighted Avg:</span>
+                                <span>${prediction.algorithm_predictions.weighted_average}</span>
+                            </div>
+                            <div class="algorithm-item">
+                                <span>Trend Analysis:</span>
+                                <span>${prediction.algorithm_predictions.trend_analysis}</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.1);">
+                            <strong>Ensemble Result: ${prediction.algorithm_predictions.ensemble} units</strong>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getPriorityClass(priority) {
+            switch(priority) {
+                case 1: return 'critical';
+                case 2: return 'high';
+                case 3: return 'medium';
+                case 4: return 'low';
+                default: return 'low';
+            }
+        }
+
+        function getPriorityText(priority) {
+            switch(priority) {
+                case 1: return 'Critical';
+                case 2: return 'High';
+                case 3: return 'Medium';
+                case 4: return 'Low';
+                default: return 'Low';
+            }
+        }
+
+        function getPriorityColor(priority) {
+            switch(priority) {
+                case 1: return '#E74C3C';
+                case 2: return '#F39C12';
+                case 3: return '#3498DB';
+                case 4: return '#27AE60';
+                default: return '#27AE60';
+            }
+        }
+
+        function filterPredictions() {
+            const priorityFilter = document.getElementById('priorityFilter').value;
+            
+            filteredPredictions = allPredictions.filter(prediction => {
+                if (priorityFilter && prediction.priority.toString() !== priorityFilter) {
+                    return false;
+                }
+                return true;
+            });
+
+            displayPredictions(filteredPredictions);
+        }
+
+        function sortPredictions() {
+            const sortBy = document.getElementById('sortBy').value;
+            
+            filteredPredictions.sort((a, b) => {
+                switch(sortBy) {
+                    case 'priority':
+                        return a.priority - b.priority;
+                    case 'turnover':
+                        return b.inventory_turnover_rate - a.inventory_turnover_rate;
+                    case 'accuracy':
+                        return b.forecast_accuracy_percentage - a.forecast_accuracy_percentage;
+                    case 'stock':
+                        return a.current_stock - b.current_stock;
+                    default:
+                        return a.priority - b.priority;
+                }
+            });
+
+            displayPredictions(filteredPredictions);
+        }
+    </script>
+</body>
+
+</html>

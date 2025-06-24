@@ -1,3 +1,4 @@
+from turtle import pd
 from flask import Blueprint, jsonify
 from flask_mysqldb import MySQL
 from datetime import datetime, timedelta
@@ -11,6 +12,8 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 import pyDecision
 import random
 from sklearn.cluster import KMeans
+
+from fahp_custom import fahp
 
 dss_bp = Blueprint('dss', __name__)
 mysql = None
@@ -32,89 +35,113 @@ def decision_support_system_advanced():
     try:
         conn = mysql.connection
         cursor = conn.cursor()
+
+        # STEP 1: Query
         query = """
-            SELECT oi.order_id, oi.quantity, oi.unit_price AS selling_price, 
-                   p.product_id, p.product_name, p.cost_price
+            SELECT 
+                oi.product_id,
+                p.product_name,
+                p.cost_price AS unit_cost_price,
+                p.price AS unit_selling_price,
+                SUM(oi.quantity) AS total_quantity,
+                SUM(oi.quantity * p.cost_price) AS total_cost,
+                SUM(oi.quantity * oi.unit_price) AS total_revenue
             FROM order_items oi
             JOIN products p ON oi.product_id = p.product_id
+            GROUP BY oi.product_id, p.product_name, p.cost_price, p.price
         """
         cursor.execute(query)
         rows = cursor.fetchall()
-        column_names = [desc[0] for desc in cursor.description]
-        order_items = [dict(zip(column_names, row)) for row in rows]
+        columns = [desc[0] for desc in cursor.description]
 
-        # ✅ Extract quantity data
-        quantities = [item.get('quantity') or 0 for item in order_items]
+        results = [dict(zip(columns, row)) for row in rows]
+
+        if not results:
+            return jsonify({"error": "No data found."}), 404
+
+        import numpy as np
+        from sklearn.cluster import KMeans
+
+        quantities = [item["total_quantity"] for item in results]
         quantity_array = np.array(quantities).reshape(-1, 1)
 
-        # ⚡️ Apply KMeans clustering
+        # STEP 2: KMeans
         if len(quantities) >= 3:
             kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
             labels = kmeans.fit_predict(quantity_array)
 
             centers = kmeans.cluster_centers_.flatten()
             sorted_centers = sorted((center, idx) for idx, center in enumerate(centers))
-            demand_mapping = {}
-            for demand_level, (_, idx) in zip(["Low", "Medium", "High"], sorted_centers):
-                demand_mapping[idx] = demand_level
+            demand_mapping = {
+                idx: level for level, (_, idx) in zip(["Low", "Medium", "High"], sorted_centers)
+            }
         else:
             labels = [0 for _ in quantity_array]
             demand_mapping = {0: "Low"}
 
-        results = []
-        for item, label in zip(order_items, labels):
-            cost_price = float(item.get('cost_price') or 0.0)
-            selling_price = float(item.get('selling_price') or 0.0)
+        formatted_results = []
+        for item, label in zip(results, labels):
+            cost_price = float(item["unit_cost_price"])
+            selling_price = float(item["unit_selling_price"])
+            total_cost = float(item["total_cost"])
+            total_revenue = float(item["total_revenue"])
+            quantity_sold = item["total_quantity"]
 
-            profit_margin = ((selling_price - cost_price) / selling_price * 100) if selling_price > 0 else 0.0
-            quantity_sold = item.get('quantity') or 0
+            profit_margin = ((total_revenue - total_cost) / total_revenue * 100) if total_revenue > 0 else 0.0
             demand_level = demand_mapping.get(label, "Low")
 
-            result = {
-                'product_id': item.get('product_id'),
-                'product_name': item.get('product_name'),
-                'cost_price': cost_price,
-                'selling_price': selling_price,
-                'profit_margin': profit_margin,
-                'demand_level': demand_level,
-                'quantity_sold': quantity_sold
-            }
-            results.append(result)
-
-            # ⚡️ Insert into profit_records
-            insert_query = """
-                INSERT INTO profit_records 
-                (product_id, product_name, cost_price, selling_price, profit_margin, demand_level)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """
-            cursor.execute(
-                insert_query,
-                (
-                    result['product_id'], 
-                    result['product_name'], 
-                    result['cost_price'], 
-                    result['selling_price'], 
-                    result['profit_margin'], 
-                    result['demand_level']
-                )
-            )
-        conn.commit()
-
-        # ✅ Final Output
-        formatted_results = []
-        for result in results:
             formatted_results.append({
-                'product_name': result['product_name'],
-                'cost_price': f"Rs. {result['cost_price']:.2f}",
-                'selling_price': f"Rs. {result['selling_price']:.2f}",
-                'profit_margin': f"{result['profit_margin']:.2f}%",
-                'demand_level': result['demand_level'],
-                'quantity_sold': f"{result['quantity_sold']} units"
+                "product_name": item["product_name"],
+                "cost_price": f"Rs. {cost_price:.2f}",
+                "selling_price": f"Rs. {selling_price:.2f}",
+                "profit_margin": f"{profit_margin:.2f}%",
+                "demand_level": demand_level,
+                "quantity_sold": f"{quantity_sold} units"
             })
 
-        return jsonify({"results": formatted_results})
+            # STEP 3: INSERT or UPDATE
+            cursor.execute("SELECT record_id FROM profit_records WHERE product_id = %s", (item["product_id"],))
+            existing_record = cursor.fetchone()
+
+            if existing_record:
+                cursor.execute("""
+                    UPDATE profit_records
+                    SET product_name = %s,
+                        cost_price = %s,
+                        selling_price = %s,
+                        profit_margin = %s,
+                        demand_level = %s
+                    WHERE product_id = %s
+                """, (
+                    item["product_name"],
+                    cost_price,
+                    selling_price,
+                    profit_margin,
+                    demand_level,
+                    item["product_id"]
+                ))
+            else:
+                cursor.execute("""
+                    INSERT INTO profit_records 
+                    (product_id, product_name, cost_price, selling_price, profit_margin, demand_level) 
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (
+                    item["product_id"],
+                    item["product_name"],
+                    cost_price,
+                    selling_price,
+                    profit_margin,
+                    demand_level
+                ))
+
+        conn.commit()
+        return jsonify({"results": formatted_results}), 200
+
     except Exception as e:
+        conn.rollback()
         return jsonify({"error": str(e)}), 500
+
+
 
 
 # Restock Prediction
@@ -418,7 +445,6 @@ def smart_recommendations():
 
 # Seasonal Forecasting
 
-
 @dss_bp.route('/seasonal_forecast', methods=['GET'])
 def seasonal_forecast():
     try:
@@ -546,3 +572,5 @@ def seasonal_forecast():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+

@@ -71,24 +71,6 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon">
-                        <i class="fas fa-user-tie"></i>
-                    </div>
-                    <div class="stat-info">
-                        <h3 id="totalManagers">0</h3>
-                        <p>Managers</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-user-cog"></i>
-                    </div>
-                    <div class="stat-info">
-                        <h3 id="totalWorkers">0</h3>
-                        <p>Workers</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">
                         <i class="fas fa-dollar-sign"></i>
                     </div>
                     <div class="stat-info">
@@ -102,16 +84,9 @@
                 <div class="table-header">
                     <h3>Employee List</h3>
                     <div class="table-filters">
-                        <select id="roleFilter">
-                            <option value="">All Roles</option>
-                            <option value="Manager">Manager</option>
-                            <option value="Worker">Worker</option>
-                            <option value="Supervisor">Supervisor</option>
-                        </select>
                         <select id="sortBy">
                             <option value="name">Sort by Name</option>
                             <option value="salary">Sort by Salary</option>
-                            <option value="role">Sort by Role</option>
                         </select>
                     </div>
                 </div>
@@ -125,7 +100,6 @@
                             <th>Phone</th>
                             <th>CNIC</th>
                             <th>Emergency Contact</th>
-                            <th>Role</th>
                             <th>Salary</th>
                             <th>Actions</th>
                         </tr>
@@ -168,15 +142,6 @@
                     <div class="form-group">
                         <label for="emergency">Emergency Contact</label>
                         <input type="tel" id="emergency" required placeholder="Enter emergency contact">
-                    </div>
-                    <div class="form-group">
-                        <label for="role">Role</label>
-                        <select id="role" required>
-                            <option value="">Select role</option>
-                            <option value="Worker">Worker</option>
-                            <option value="Manager">Manager</option>
-                            <option value="Supervisor">Supervisor</option>
-                        </select>
                     </div>
                     <div class="form-group">
                         <label for="salary">Monthly Salary (Rs.)</label>

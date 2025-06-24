@@ -22,10 +22,7 @@ function setupEventListeners() {
     });
 
     // Filter functionality
-    const roleFilter = document.getElementById("roleFilter");
     const sortBy = document.getElementById("sortBy");
-    
-    roleFilter.addEventListener("change", filterEmployees);
     sortBy.addEventListener("change", filterEmployees);
 }
 
@@ -50,7 +47,7 @@ function displayEmployees(employeeList) {
     if (employeeList.length === 0) {
         tableBody.innerHTML = `
             <tr>
-                <td colspan="10" style="text-align: center; padding: 40px; color: #6b7280;">
+                <td colspan="9" style="text-align: center; padding: 40px; color: #6b7280;">
                     <i class="fas fa-users" style="font-size: 48px; margin-bottom: 16px; display: block;"></i>
                     No employees found
                 </td>
@@ -73,9 +70,6 @@ function displayEmployees(employeeList) {
             <td>${emp.phone}</td>
             <td>${emp.cnic}</td>
             <td>${emp.emergency}</td>
-            <td>
-                <span class="role-badge role-${emp.role.toLowerCase()}">${emp.role}</span>
-            </td>
             <td><strong>Rs. ${parseInt(emp.salary).toLocaleString()}</strong></td>
             <td>
                 <button class="action-btn edit-btn" onclick="editEmployee('${emp.employee_id}')" title="Edit Employee">
@@ -88,64 +82,25 @@ function displayEmployees(employeeList) {
         `;
         tableBody.appendChild(row);
     });
-
-    // Add role badge styles
-    addRoleBadgeStyles();
-}
-
-function addRoleBadgeStyles() {
-    if (!document.getElementById('role-badge-styles')) {
-        const style = document.createElement('style');
-        style.id = 'role-badge-styles';
-        style.textContent = `
-            .role-badge {
-                padding: 4px 12px;
-                border-radius: 20px;
-                font-size: 12px;
-                font-weight: 600;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-            .role-manager {
-                background-color: rgba(52, 152, 219, 0.1);
-                color: #3498db;
-            }
-            .role-worker {
-                background-color: rgba(39, 174, 96, 0.1);
-                color: #27ae60;
-            }
-            .role-supervisor {
-                background-color: rgba(243, 156, 18, 0.1);
-                color: #f39c12;
-            }
-        `;
-        document.head.appendChild(style);
-    }
 }
 
 function updateStatistics(employeeList) {
     const totalEmployees = employeeList.length;
-    const totalManagers = employeeList.filter(emp => emp.role === 'Manager').length;
-    const totalWorkers = employeeList.filter(emp => emp.role === 'Worker').length;
     const totalSalary = employeeList.reduce((sum, emp) => sum + parseInt(emp.salary), 0);
 
     document.getElementById('totalEmployees').textContent = totalEmployees;
-    document.getElementById('totalManagers').textContent = totalManagers;
-    document.getElementById('totalWorkers').textContent = totalWorkers;
     document.getElementById('totalSalary').textContent = `Rs. ${totalSalary.toLocaleString()}`;
 }
 
 function filterEmployees() {
     const searchTerm = document.getElementById("searchEmployees").value.toLowerCase();
-    const roleFilter = document.getElementById("roleFilter").value;
     const sortBy = document.getElementById("sortBy").value;
 
     let filteredEmployees = employees.filter(emp => {
         const matchesSearch = emp.name.toLowerCase().includes(searchTerm) ||
                             emp.email.toLowerCase().includes(searchTerm) ||
                             emp.employee_id.toLowerCase().includes(searchTerm);
-        const matchesRole = !roleFilter || emp.role === roleFilter;
-        return matchesSearch && matchesRole;
+        return matchesSearch;
     });
 
     // Sort employees
@@ -155,8 +110,6 @@ function filterEmployees() {
                 return a.name.localeCompare(b.name);
             case 'salary':
                 return parseInt(b.salary) - parseInt(a.salary);
-            case 'role':
-                return a.role.localeCompare(b.role);
             default:
                 return 0;
         }
@@ -174,7 +127,7 @@ function openModal() {
 function closeModal() {
     document.getElementById("employeeModal").style.display = "none";
     document.getElementById("employeeForm").reset();
-    document.getElementById("empId").disabled = false; // Always enable after close
+    document.getElementById("empId").disabled = false;
     editMode = false;
     editEmployeeId = null;
     document.body.style.overflow = "auto";
@@ -200,7 +153,7 @@ function saveEmployee() {
         phone: document.getElementById("phone").value.trim(),
         cnic: document.getElementById("cnic").value.trim(),
         emergency_contact: document.getElementById("emergency").value.trim(),
-        role: document.getElementById("role").value,
+        role: "Employee", // Fixed role
         salary: document.getElementById("salary").value.trim()
     };
 
@@ -222,8 +175,8 @@ function saveEmployee() {
     .then(res => res.json())
     .then(data => {
         if (data.status === 'success') {
-            closeModal(); // Modal close and form reset
-            fetchEmployees(); // Table refresh
+            closeModal();
+            fetchEmployees();
             showNotification(
                 editMode ? 'Employee updated successfully!' : 'Employee added successfully!',
                 'success'
@@ -247,10 +200,10 @@ function validateEmployee(employee) {
 
     // Check if email already exists
     const existingEmail = employees.find(emp => emp.email === employee.email);
-if (existingEmail && (!editMode || existingEmail.employee_id !== editEmployeeId)) {
-    showNotification('Email already exists', 'error');
-    return false;
-}
+    if (existingEmail && (!editMode || existingEmail.employee_id !== editEmployeeId)) {
+        showNotification('Email already exists', 'error');
+        return false;
+    }
 
     // Validate CNIC format (basic validation)
     if (!/^\d{5}-\d{7}-\d{1}$/.test(employee.cnic)) {
@@ -268,19 +221,18 @@ if (existingEmail && (!editMode || existingEmail.employee_id !== editEmployeeId)
 }
 
 function editEmployee(id) {
-    const emp = employees.find(e => e.employee_id === id); // <-- yahan fix
+    const emp = employees.find(e => e.employee_id === id);
     if (emp) {
         editMode = true;
         editEmployeeId = id;
         
         document.getElementById("empId").value = emp.employee_id;
-        document.getElementById("empId").disabled = true; // Disable ID editing
+        document.getElementById("empId").disabled = true;
         document.getElementById("name").value = emp.name;
         document.getElementById("email").value = emp.email;
         document.getElementById("phone").value = emp.phone;
         document.getElementById("cnic").value = emp.cnic;
         document.getElementById("emergency").value = emp.emergency;
-        document.getElementById("role").value = emp.role;
         document.getElementById("salary").value = emp.salary;
         
         openModal();
@@ -371,4 +323,3 @@ window.onclick = function (event) {
         closeDeleteModal();
     }
 };
-
