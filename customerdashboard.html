@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Customer Dashboard</title>
     <link rel="stylesheet" href="/css/admindashboard.css">
+    <link rel="stylesheet" href="/css/customerledger.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="shortcut icon" href="/pictures/icon.png" type="image/x-icon">
 </head>
@@ -17,9 +18,7 @@
             <img src="/pictures/log.jpeg" alt="Logo">
         </div>
         <nav>
-            <a href="/dashboard" class="nav-item"><i class="fas fa-chart-line"></i> Analysis</a>
-            <a href="/BIexpiry" class="nav-item"><i class="fas fa-chart-line"></i> BI Expiry</a>
-
+            
             <a href="/admininventory" class="nav-item"><i class="fas fa-box"></i> Inventory</a>
             <a href="/expiry" class="nav-item"><i class="fas fa-exclamation-circle"></i> Expiry</a>
             <a href="/employes" class="nav-item"><i class="fas fa-users"></i> Employees</a>
@@ -116,7 +115,94 @@
         </div>
     </div>
 
+    <!-- Customer Ledger Modal -->
+    <div id="customerLedgerModal" class="ledger-modal">
+        <div class="ledger-modal-content">
+            <div class="ledger-header">
+                <h2>Customer Ledger</h2>
+                <button class="close-ledger" onclick="closeCustomerLedger()">&times;</button>
+            </div>
+            
+            <div class="ledger-filters">
+                <div class="filter-group">
+                    <label>Date From</label>
+                    <input type="date" id="dateFrom">
+                </div>
+                <div class="filter-group">
+                    <label>Date To</label>
+                    <input type="date" id="dateTo">
+                </div>
+                <div class="filter-group">
+                    <label>Transaction Type</label>
+                    <select id="transTypeFilter">
+                        <option value="">All Types</option>
+                        <option value="Med-Sales">Med-Sales</option>
+                        <option value="Sales-Dis">Sales-Dis</option>
+                        <option value="Receipt Vouc">Receipt Vouc</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Search</label>
+                    <input type="text" id="searchLedger" placeholder="Search transactions...">
+                </div>
+            </div>
+            
+            <div class="ledger-summary">
+                <div class="summary-card">
+                    <h4>Opening Balance</h4>
+                    <p class="amount balance" id="openingBalance">Rs. 0.00</p>
+                </div>
+                <div class="summary-card">
+                    <h4>Total Debit</h4>
+                    <p class="amount debit" id="totalDebit">Rs. 0.00</p>
+                </div>
+                <div class="summary-card">
+                    <h4>Total Credit</h4>
+                    <p class="amount credit" id="totalCredit">Rs. 0.00</p>
+                </div>
+                <div class="summary-card">
+                    <h4>Ending Balance</h4>
+                    <p class="amount balance" id="endingBalance">Rs. 0.00</p>
+                </div>
+            </div>
+            
+            <div class="ledger-table-container">
+                <table class="ledger-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Inv.No</th>
+                            <th>Trans Type</th>
+                            <th>Item Name</th>
+                            <th>Description</th>
+                            <th>Qty</th>
+                            <th>Rate</th>
+                            <th>Credit Amount</th>
+                            <th>Debit Amount</th>
+                            <th>Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledgerTableBody">
+                        <!-- Ledger data will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="export-buttons">
+                <button class="export-btn pdf" onclick="exportLedgerToPDF()">
+                    <i class="fas fa-file-pdf"></i>
+                    Export PDF
+                </button>
+                <button class="export-btn excel" onclick="exportLedgerToExcel()">
+                    <i class="fas fa-file-excel"></i>
+                    Export Excel
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="/js/customerdashboard.js"></script>
+    <script src="/js/customerledger.js"></script>
 </body>
 
 </html>

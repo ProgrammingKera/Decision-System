@@ -362,6 +362,109 @@ def delete_user(user_id):
         return jsonify({"success": False, "message": str(e)}), 500
 
 
+# Customer Ledger API
+@app.route('/api/customer-ledger/<int:customer_id>', methods=['GET'])
+def get_customer_ledger(customer_id):
+    try:
+        cur = mysql.connection.cursor()
+        
+        # Get customer info
+        cur.execute("SELECT id, username, first_name, last_name, email FROM users WHERE id = %s", (customer_id,))
+        customer_info = cur.fetchone()
+        
+        if not customer_info:
+            return jsonify({"error": "Customer not found"}), 404
+        
+        customer_data = {
+            'id': customer_info[0],
+            'name': f"{customer_info[2]} {customer_info[3]}",
+            'email': customer_info[4]
+        }
+        
+        # Get all transactions for this customer
+        cur.execute("""
+            SELECT 
+                o.order_date as date,
+                o.order_id as inv_no,
+                'Med-Sales' as trans_type,
+                oi.product_name as item_name,
+                CONCAT(oi.product_name, ' - Qty: ', oi.quantity) as description,
+                oi.quantity as qty,
+                oi.unit_price as rate,
+                0 as credit_amount,
+                oi.total_price as debit_amount,
+                'Dr' as dr_cr
+            FROM orders o
+            JOIN order_items oi ON o.order_id = oi.order_id
+            WHERE o.customer_id = %s
+            
+            UNION ALL
+            
+            SELECT 
+                o.order_date as date,
+                o.order_id as inv_no,
+                'Receipt Vouc' as trans_type,
+                'Cash Payment' as item_name,
+                CONCAT('Payment for Order #', o.order_id) as description,
+                1 as qty,
+                o.paid_amount as rate,
+                o.paid_amount as credit_amount,
+                0 as debit_amount,
+                'Cr' as dr_cr
+            FROM orders o
+            WHERE o.customer_id = %s AND o.paid_amount > 0
+            
+            ORDER BY date ASC, inv_no ASC
+        """, (customer_id, customer_id))
+        
+        transactions = []
+        running_balance = 0.0
+        
+        for row in cur.fetchall():
+            debit_amount = float(row[8]) if row[8] else 0.0
+            credit_amount = float(row[7]) if row[7] else 0.0
+            
+            # Calculate running balance (Debit increases balance, Credit decreases)
+            running_balance += debit_amount - credit_amount
+            
+            transaction = {
+                'date': row[0],
+                'inv_no': row[1],
+                'trans_type': row[2],
+                'item_name': row[3],
+                'description': row[4],
+                'qty': row[5],
+                'rate': float(row[6]) if row[6] else 0.0,
+                'credit_amount': credit_amount,
+                'debit_amount': debit_amount,
+                'balance': running_balance,
+                'dr_cr': 'Dr' if running_balance >= 0 else 'Cr'
+            }
+            transactions.append(transaction)
+        
+        # Calculate summary
+        total_debit = sum(t['debit_amount'] for t in transactions)
+        total_credit = sum(t['credit_amount'] for t in transactions)
+        
+        summary = {
+            'opening_balance': 0.0,
+            'total_debit': total_debit,
+            'total_credit': total_credit,
+            'ending_balance': running_balance
+        }
+        
+        cur.close()
+        
+        return jsonify({
+            'customer_info': customer_data,
+            'transactions': transactions,
+            'summary': summary
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 #inventory
 @app.route('/api/products', methods=['GET'])
 def get_products():
@@ -658,7 +761,6 @@ def generate_pharmacy_order_pdf(order_id, supplier_name, expected_delivery_date,
     pdf.cell(0, 10, f"Purchase Order #: PO-{order_id}", ln=True)
 
     pdf.set_font("Arial", "", 12)
-    pdf.cell(0, 10, f"Supplier: {supplier_name}", ln=True)
     pdf.cell(0, 10, f"Expected Delivery: {expected_delivery_date}", ln=True)
     pdf.cell(0, 10, f"Order Date: {datetime.now().strftime('%d %B %Y, %I:%M %p')}", ln=True)
     pdf.ln(10)
@@ -818,8 +920,8 @@ def generate_customer_receipt_pdf(order_id, cart, total_amount, paid_amount, cha
 
     pdf.set_font("Arial", "", 11)
     pdf.set_text_color(0, 0, 0)
-    pdf.cell(0, 6, "Smart Healthcare Solutions", ln=True, align="C")
-    pdf.cell(0, 6, "Near DHQ Hospital, Jhelum", ln=True, align="C")
+    pdf.cell(0, 6, "Dogar Pharmacy", ln=True, align="C")
+    pdf.cell(0, 6, "Bucha Chatta", ln=True, align="C")
     pdf.cell(0, 6, "License Number: 3088-6987456", ln=True, align="C")
     pdf.cell(0, 6, "Tel: 0321-1234567", ln=True, align="C")
     pdf.ln(5)
@@ -962,7 +1064,7 @@ def save_order():
         pdf.cell(190, 10, "DOGAR PHARMACY", ln=True, align="C")
 
         pdf.set_font("Arial", "", 12)
-        pdf.cell(190, 8, "Near DHQ Hospital, Jhelum", ln=True, align="C")
+        pdf.cell(190, 8, "Bucha Chatta", ln=True, align="C")
         pdf.cell(190, 8, "License Number: 3088-6987456", ln=True, align="C")
         pdf.cell(190, 8, "Tel: 0321-1234567", ln=True, align="C")
         pdf.ln(3)
