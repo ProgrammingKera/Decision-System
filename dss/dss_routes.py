@@ -12,6 +12,8 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 import pyDecision
 import random
 from sklearn.cluster import KMeans
+import ahpy
+
 
 from fahp_custom import fahp
 
@@ -141,16 +143,14 @@ def decision_support_system_advanced():
         conn.rollback()
         return jsonify({"error": str(e)}), 500
 
-
-
-
-# Restock Prediction
+# Predict Restocks
 @dss_bp.route('/api/predict_restocks', methods=['GET'])
 def predict_restocks():
     try:
         conn = mysql.connection
         cursor = conn.cursor()
 
+        # Get order data
         query = """
         SELECT oi.product_id, p.product_name, oi.quantity, o.order_date, p.stock_quantity
         FROM order_items oi
@@ -165,23 +165,23 @@ def predict_restocks():
         product_data = {}
         restock_predictions = {}
 
+        # Group sales by product
         for item in order_items:
-            pid = item['product_id']
+            pid = item["product_id"]
             if pid not in product_data:
                 product_data[pid] = {
-                    "name": item['product_name'],
-                    "stock_quantity": item['stock_quantity'],
+                    "name": item["product_name"],
+                    "stock_quantity": item["stock_quantity"],
                     "sales": []
                 }
-            # Store (date, quantity)
-            product_data[pid]["sales"].append((item['order_date'], item['quantity']))
+            product_data[pid]["sales"].append((item["order_date"], item["quantity"]))
 
         for pid, pdata in product_data.items():
             sales = sorted(pdata["sales"], key=lambda x: x[0])
-            if len(sales) < 2:
-                continue  # not enough data to train model
 
-            # Prepare X (days since first order) and y (quantity)
+            if len(sales) < 2:
+                continue
+
             start_date = sales[0][0]
             X = np.array([(s[0] - start_date).days for s in sales]).reshape(-1, 1)
             y = np.array([s[1] for s in sales])
@@ -189,11 +189,11 @@ def predict_restocks():
             model = LinearRegression()
             model.fit(X, y)
 
-            # Predict future day when total stock will be depleted
             total_stock = pdata["stock_quantity"]
+
+            # Predict restock date
             days = 0
             predicted_total = 0
-
             while predicted_total < total_stock and days < 365:
                 qty = model.predict(np.array([[days]]))[0]
                 qty = max(qty, 0)
@@ -202,18 +202,45 @@ def predict_restocks():
 
             restock_date = (start_date + timedelta(days=days)).date()
 
+            # Predict quantity for next 30 days
+            future_days = np.arange(1, 31).reshape(-1, 1)
+            future_predictions = model.predict(future_days)
+            future_predictions = [max(qty, 0) for qty in future_predictions]
+            recommended_quantity = int(np.sum(future_predictions))
+
             restock_predictions[pid] = {
                 "product_name": pdata["name"],
+                "product_id": pid,
                 "stock_quantity": total_stock,
                 "predicted_days_until_restock": days,
-                "restock_date": restock_date
+                "restock_date": restock_date,
+                "recommended_quantity": recommended_quantity
             }
 
+        # Save results in restock_prediction table
+        prediction_date = datetime.now()
+        for item in restock_predictions.values():
+            insert_query = """
+            INSERT INTO restock_prediction (product_id, prediction_date, current_stock, predicted_restock_date, recommended_quantity) 
+            VALUES (%s, %s, %s, %s, %s)
+            """
+            cursor.execute(
+                insert_query,
+                (
+                    item["product_id"],
+                    prediction_date,
+                    item["stock_quantity"],
+                    item["restock_date"],
+                    item["recommended_quantity"],
+                )
+            )
+        conn.commit()
         cursor.close()
+
         return jsonify(list(restock_predictions.values()))
-         
+
     except Exception as e:
-        return jsonify({"error": f"Error: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
 
 
 
@@ -574,3 +601,114 @@ def seasonal_forecast():
         return jsonify({"error": str(e)}), 500
 
 
+# Customer Purchase Patterns and KPI Analysis
+@dss_bp.route('/api/customer_purchase_patterns', methods=['GET'])
+def customer_purchase_patterns():
+    try:
+        conn = mysql.connection
+        cursor = conn.cursor()
+
+        # Get raw order data
+        query = """
+        SELECT 
+            o.customer_id,
+            oi.product_id,
+            p.product_name,
+            oi.quantity,
+            oi.unit_price,
+            p.cost_price,
+            o.order_date
+        FROM order_items oi
+        JOIN orders o ON oi.order_id = o.order_id
+        JOIN products p ON oi.product_id = p.product_id
+        """
+        cursor.execute(query)
+        rows = cursor.fetchall()
+
+        data = {}
+        for row in rows:
+            customer_id, product_id, product_name, quantity, unit_price, cost_price, order_date = row
+            if customer_id is None:
+                continue
+            if customer_id not in data:
+                data[customer_id] = []
+            data[customer_id].append({
+                "product_id": product_id,
+                "product_name": product_name,
+                "quantity": quantity,
+                "unit_price": float(unit_price),
+                "cost_price": float(cost_price),
+                "order_date": order_date
+            })
+
+        results = []
+        for customer_id, items in data.items():
+            total_quantity = sum(d["quantity"] for d in items)
+            total_unit_price_sum = sum(d["quantity"] * d["unit_price"] for d in items)
+            total_cost_sum = sum(d["quantity"] * d["cost_price"] for d in items)
+
+            # KPIs
+            product_sales = total_unit_price_sum
+            gross_margin = ((product_sales - total_cost_sum) / product_sales) * 100 if product_sales > 0 else 0
+            inventory_turnover_rate = total_cost_sum / 30 if total_cost_sum > 0 else 0
+            purchase_frequency = len(items)
+
+            # NEXT PREDICTED PURCHASE DATE
+            sorted_dates = sorted(d["order_date"] for d in items)
+            if len(sorted_dates) >= 2:
+                days_diff = (sorted_dates[-1] - sorted_dates[-2]).days
+            else:
+                days_diff = 30
+            next_predicted_purchase_date = sorted_dates[-1] + timedelta(days=days_diff)
+
+            # CONFIDENCE SCORE
+            confidence_score = min(100, purchase_frequency * 10)
+
+            # Normalization for FAHP Score
+            normalized_frequency = min(purchase_frequency / 10.0, 1.0)  
+            normalized_gross_margin = min(gross_margin / 100.0, 1.0)    
+            normalized_turnover_rate = min(inventory_turnover_rate / 1000.0, 1.0)  
+            fahp_score = (0.4 * normalized_frequency) + (0.3 * normalized_gross_margin) + (0.3 * normalized_turnover_rate)
+
+            results.append({
+                "customer_id": customer_id,
+                "product_ids": ", ".join({str(d["product_id"]) for d in items}),
+                "product_name": ", ".join({d["product_name"] for d in items}),
+                "product_sales": f"{round(product_sales, 2)} PKR",
+                "gross_margin": f"{round(gross_margin, 2)}%",
+                "inventory_turnover_rate": f"{round(inventory_turnover_rate, 2)} times per period",
+                "purchase_frequency": f"{purchase_frequency} times",
+                "next_predicted_purchase_date": next_predicted_purchase_date.strftime("%Y-%m-%d"),
+                "confidence_score": f"{confidence_score}/100",
+                "fahp_score": f"{round(fahp_score, 4)} (FAHP Index)"
+            })
+
+
+            # Save Results to Database
+            insert_query = """
+            INSERT INTO customer_purchase_patterns
+            (customer_id, product_id, product_name, total_quantity_purchased, 
+             product_sales, gross_margin, inventory_turnover_rate, 
+             fahp_score, purchase_frequency, next_predicted_purchase_date, confidence_score) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(insert_query, (
+                customer_id,
+                results[-1]["product_ids"],
+                results[-1]["product_name"],
+                total_quantity,
+                product_sales,
+                gross_margin,
+                inventory_turnover_rate,
+                fahp_score,
+                purchase_frequency,
+                results[-1]["next_predicted_purchase_date"],
+                confidence_score
+            ))
+
+        conn.commit()
+        cursor.close()
+        return jsonify(results)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
